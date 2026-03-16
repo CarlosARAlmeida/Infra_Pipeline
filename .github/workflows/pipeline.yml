@@ -23,6 +23,10 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Debug Environment
+        run: |
+          if [ -z "$TF_VAR_proxmox_api_url" ]; then echo "ERRO: URL VAZIA"; else echo "URL detectada"; fi
+
       - name: Terraform Plan
         env:
           TF_VAR_proxmox_api_url: ${{ secrets.PROXMOX_API_URL }}

@@ -1,6 +1,6 @@
 variable "proxmox_api_url" {
-  type        = string
-  description = "URL da API do Proxmox (Ex: https://ip-do-servidor:8006/api2/json)"
+  type    = string
+  default = "" # Garante que a variável exista, mesmo que vazia
 }
 
 # Mudamos de 'proxmox_api_token' para estas duas abaixo:
