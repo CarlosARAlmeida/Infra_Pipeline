@@ -10,6 +10,7 @@ jobs:
   terraform:
     name: "Terraform Apply"
     runs-on: self-hosted
+    environment: "Proxmox"
     
     # Colocar aqui no topo do job garante que todos os steps vejam as envs
     env:
@@ -26,6 +27,12 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Debug Secret Existence
+        run: |
+          echo "Verificando se os segredos existem (sem mostrar o conteúdo):"
+          [ -n "${PM_API_URL}" ] && echo "URL: OK" || echo "URL: VAZIA"
+          [ -n "${PM_API_TOKEN_ID}" ] && echo "TOKEN_ID: OK" || echo "TOKEN_ID: VAZIA"
 
       - name: Terraform Init
         run: terraform init
