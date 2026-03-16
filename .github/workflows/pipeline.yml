@@ -9,9 +9,16 @@ on:
 jobs:
   terraform:
     name: "Terraform Apply"
-    # IMPORTANTE: Isso diz ao GitHub para usar o seu container local
-    runs-on: self-hosted 
+    runs-on: self-hosted
     
+    # Colocar aqui no topo do job garante que todos os steps vejam as envs
+    env:
+      PM_API_URL: ${{ secrets.PROXMOX_API_URL }}
+      PM_API_TOKEN_ID: ${{ secrets.PROXMOX_API_TOKEN_ID }}
+      PM_API_TOKEN_SECRET: ${{ secrets.PROXMOX_API_TOKEN_SECRET }}
+      # Essa continua como TF_VAR porque ela é usada no seu main.tf
+      TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
     defaults:
       run:
         working-directory: ./terraform
@@ -23,22 +30,9 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Debug Environment
-        run: |
-          if [ -z "$TF_VAR_proxmox_api_url" ]; then echo "ERRO: URL VAZIA"; else echo "URL detectada"; fi
-
       - name: Terraform Plan
-        env:
-          TF_VAR_proxmox_api_url: ${{ secrets.PROXMOX_API_URL }}
-          TF_VAR_proxmox_api_token_id: ${{ secrets.PROXMOX_API_TOKEN_ID }}
-          TF_VAR_proxmox_api_token_secret: ${{ secrets.PROXMOX_API_TOKEN_SECRET }}
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
         run: terraform plan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        env:
-          TF_VAR_proxmox_api_url: ${{ secrets.PROXMOX_API_URL }}
-          TF_VAR_proxmox_api_token: ${{ secrets.PROXMOX_API_TOKEN }}
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+        if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve
