@@ -1,20 +1,15 @@
 terraform {
   required_providers {
     proxmox = {
-      source  = "bpg/proxmox"
-      version = "0.66.1" # Verifique a última versão estável
+      source  = "Telmate/proxmox"
+      version = "3.0.1-rc4" # Versão estável e compatível
     }
   }
 }
 
 provider "proxmox" {
-  endpoint = var.proxmox_api_url
-  api_token = var.proxmox_api_token
-  insecure  = true # Setar como true se você usa certificado auto-assinado (comum em labs)
-
-  ssh {
-    agent = true
-    # O Terraform usa SSH para algumas operações de provisionamento
-    username = "root" 
-  }
+  pm_api_url          = var.proxmox_api_url
+  pm_api_token_id     = var.proxmox_api_token_id # Note que o nome mudou um pouco
+  pm_api_token_secret = var.proxmox_api_token_secret
+  pm_tls_insecure     = true
 }
