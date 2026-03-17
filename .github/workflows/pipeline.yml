@@ -13,7 +13,7 @@ jobs:
     environment: "Proxmox"
     
     # Colocar aqui no topo do job garante que todos os steps vejam as envs
- #   env:
+    env:
   #    PM_API_URL: ${{ secrets.PROXMOX_API_URL }}
  #     PM_API_TOKEN_ID: ${{ secrets.PROXMOX_API_TOKEN_ID }}
  #     PM_API_TOKEN_SECRET: ${{ secrets.PROXMOX_API_TOKEN_SECRET }}
