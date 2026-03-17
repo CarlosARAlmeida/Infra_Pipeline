@@ -1,6 +1,5 @@
 name: "Proxmox IaC Pipeline"
 
-
 on:
   push:
     branches:
