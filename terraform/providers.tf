@@ -2,7 +2,7 @@ terraform {
   required_providers {
     proxmox = {
       source  = "Telmate/proxmox"
-      version = "2.9.14" # <--- ESTA VERSÃO É A SOLUÇÃO
+      version = "3.0.2-rc07" # Versão com suporte oficial ao PVE 9
     }
   }
 }
