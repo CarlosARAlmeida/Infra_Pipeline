@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    proxmox = {
+      source  = "Telmate/proxmox"
+      version = "3.0.1-rc4" # Versão estável que estávamos usando
+    }
+  }
+}
+
 provider "proxmox" {
   # URL completa com /api2/json
   pm_api_url          = "https://192.168.98.38:8006/api2/json"
