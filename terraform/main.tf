@@ -9,6 +9,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   agent   = 1 # Habilite se tiver o qemu-guest-agent no template
 
   network {
+    id      = 0
     model  = "virtio"
     bridge = "vmbr1"
   }
@@ -29,6 +30,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   memory  = 2048
 
   network {
+    id      = 0
     model  = "virtio"
     bridge = "vmbr1"
   }
