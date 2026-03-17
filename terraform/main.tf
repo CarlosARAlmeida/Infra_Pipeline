@@ -1,7 +1,7 @@
 resource "proxmox_vm_qemu" "k8s_master" {
   name        = "k8s-master-01"
   target_node = "pve02" # Nome do seu nó Proxmox
-  clone       = "ubuntu-template" # NOME do seu template (não o ID)
+  clone       = "ubuntu-2404-cloud-init" # NOME do seu template (não o ID)
   vmid        = 100
   
   cores   = 4
