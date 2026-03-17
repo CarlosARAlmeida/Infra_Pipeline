@@ -15,8 +15,6 @@ provider "proxmox" {
 }
 
 
-
-
 # terraform {
 #   required_providers {
 #     proxmox = {
