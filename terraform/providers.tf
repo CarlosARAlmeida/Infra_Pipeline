@@ -9,7 +9,7 @@ terraform {
 
 provider "proxmox" {
   # URL completa com /api2/json
-  pm_api_url          = "https://192.168.98.38:8006/api2/json"
+  pm_api_url          = "https://192.168.98.38:8006"
   
   # ID completo: usuario@realm!nome_do_token
   pm_api_token_id     = "terraform-prov@pve!terraform-token"
