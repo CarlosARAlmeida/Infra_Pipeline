@@ -4,7 +4,12 @@ resource "proxmox_vm_qemu" "k8s_master" {
   target_node = "pve02"
   clone       = "ubuntu-2404-cloud-init"
   vmid        = 200
+  agent = 1
   full_clone  = true # Recomendado para não depender do template após o deploy
+
+  vga {
+    type = "std"
+  }
 
   cpu {
     cores = 4
@@ -18,6 +23,11 @@ resource "proxmox_vm_qemu" "k8s_master" {
     id     = 0
     model  = "virtio"
     bridge = "vmbr1" # Certifique-se que a vmbr1 existe no pve02
+  }
+
+  serial {
+    id   = 0
+    type = "socket"
   }
 
   # Cloud-init: IP estático e Chave SSH
