@@ -17,7 +17,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   }
 
   memory = 4096
-  agent  = 1 # Agora dentro do bloco correto
+#  agent  = 1 # Agora dentro do bloco correto
 
   network {
     id     = 0
@@ -52,7 +52,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   }
 
   memory = 2048
-  agent  = 1
+#  agent  = 1
 
   network {
     id     = 0
