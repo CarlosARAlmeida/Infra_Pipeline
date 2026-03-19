@@ -6,7 +6,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   vmid        = 200
   agent = 1
   full_clone  = true
-  boot = "order=scsi0;ide2"
+  scsihw = "virtio-scsi-pci"t
 
   vga {
     type = "std"
@@ -24,6 +24,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
     id     = 0
     model  = "virtio"
     bridge = "vmbr1"
+    tag    = 120
   }
 
   serial {
@@ -43,8 +44,8 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   target_node = "pve02"
   clone       = "ubuntu-2404-template"
   full_clone  = true
-  boot = "order=scsi0;ide2"
-  
+  scsihw = "virtio-scsi-pci"
+
   # IDs 201 e 202 para evitar o erro de 'ID 100 em uso'
   vmid        = 201 + count.index
 
@@ -70,6 +71,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
     id     = 0
     model  = "virtio"
     bridge = "vmbr1"
+    tag    = 120
   }
 
   # Lógica de IP: Resultará em 172.22.0.30 e 172.22.0.31
