@@ -72,6 +72,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   }
   # -------------------------------------------
 
+
   bootdisk    = "scsi0"
 
 # Disco de Cloud-Init (ADICIONE ISTE)
