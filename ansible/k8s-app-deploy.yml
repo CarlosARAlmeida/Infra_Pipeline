@@ -87,6 +87,12 @@
                   env:
                   - name: PODINFO_BACKEND_URL
                     value: "http://redis:6379"
+                  - name: JAEGER_AGENT_HOST
+                    value: "172.22.0.87" # Substitua pelo IP onde o Docker/Jaeger está rodando
+                  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                    value: "http://172.22.0.87:4318" # Endpoint do Jaeger via HTTP
+                  - name: OTEL_SERVICE_NAME
+                    value: "podinfo-lab"
                   ports:
                   - containerPort: 9898
                     protocol: TCP
