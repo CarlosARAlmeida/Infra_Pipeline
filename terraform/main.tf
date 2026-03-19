@@ -6,7 +6,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   vmid        = 200
   agent = 1
   full_clone  = true
-  scsihw = "virtio-scsi-pci"t
+  scsihw = "virtio-scsi-pci"
 
   vga {
     type = "std"
