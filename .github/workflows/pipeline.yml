@@ -93,3 +93,18 @@ jobs:
                            ansible/k8s-prep.yml \
                            -u ubuntu \
                            --private-key private_key.pem
+
+      - name: Executar Instalação do K3s
+        if: github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          # Agora usamos o seu arquivo de inventário (-i ansible/inventory.ini)
+          ansible-playbook -i ansible/inventory.ini \
+                           ansible/k8s-install.yml \
+                           --private-key private_key.pem

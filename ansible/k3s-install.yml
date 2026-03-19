@@ -1,0 +1,33 @@
+---
+- name: Instalar K3s Control Plane (Master)
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Baixar e rodar instalador do K3s no Master
+      shell: curl -sfL https://get.k3s.io | sh -s - server --node-ip={{ ansible_host }}
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Capturar o Node Token do Master
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: master_token_encoded
+
+    - name: Definir o token como um fato para o próximo grupo
+      set_fact:
+        k3s_token: "{{ master_token_encoded.content | b64decode | trim }}"
+
+- name: Instalar K3s Agents (Workers)
+  hosts: k8s_workers
+  become: true
+  vars:
+    master_ip: "172.22.0.29"
+  tasks:
+    - name: Unir Workers ao Cluster
+      shell: >
+        curl -sfL https://get.k3s.io | 
+        K3S_URL=https://{{ master_ip }}:6443 
+        K3S_TOKEN={{ hostvars[groups['k8s_master'][0]]['k3s_token'] }} 
+        sh -
+      args:
+        creates: /usr/local/bin/k3s-agent
