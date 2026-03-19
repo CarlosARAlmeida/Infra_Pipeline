@@ -7,20 +7,22 @@ resource "proxmox_vm_qemu" "k8s_master" {
   agent = 1
   full_clone  = true
   scsihw = "virtio-scsi-pci"
-  bootdisk = "scsi0"
+  bootdisk    = "scsi0"
 
-
-  vga {
-    type = "std"
+  # --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
+  disk {
+    slot     = 0
+    size     = "20G"        # Tamanho desejado (deve ser >= ao do template)
+    type     = "scsi"
+    storage  = "local-lvm"  # Nome exato do seu storage
+    iothread = 1
   }
+  # -------------------------------------------
 
-  cpu {
-    cores = 4
-    type  = "host"
-  }
-
+  vga { type = "std" }
+  serial { id = 0; type = "socket" }
+  cpu { cores = 4; type = "host" }
   memory = 4096
-#  agent  = 1 # Agora dentro do bloco correto
 
   network {
     id     = 0
@@ -29,12 +31,6 @@ resource "proxmox_vm_qemu" "k8s_master" {
     tag    = 120
   }
 
-  serial {
-    id   = 0
-    type = "socket"
-  }
-
-  # Cloud-init: IP estático e Chave SSH
   ipconfig0 = "ip=172.22.0.29/23,gw=172.22.0.1"
   sshkeys   = var.ssh_public_key
 }
@@ -47,8 +43,18 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   clone       = "ubuntu-2404-template"
   full_clone  = true
   scsihw = "virtio-scsi-pci"
-  bootdisk = "scsi0"
 
+# --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
+  disk {
+    slot     = 0
+    size     = "20G"        # Tamanho desejado (deve ser >= ao do template)
+    type     = "scsi"
+    storage  = "local-lvm"  # Nome exato do seu storage
+    iothread = 1
+  }
+  # -------------------------------------------
+
+  bootdisk    = "scsi0"
 
   # IDs 201 e 202 para evitar o erro de 'ID 100 em uso'
   vmid        = 201 + count.index
