@@ -9,6 +9,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   scsihw = "virtio-scsi-single"
   bootdisk    = "scsi0"
 
+
   # --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
   disk {
     slot     = "scsi0"
