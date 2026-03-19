@@ -42,3 +42,22 @@ jobs:
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve
+
+
+      - name: Testar conexão com as VMs (Ansible Ping)
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False" # Para não travar pedindo confirmação de fingerprint
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          # 1. Cria o arquivo da chave privada temporariamente
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          # 2. Roda um comando ad-hoc do Ansible
+          # -i: aponta para os IPs das VMs (Master e Workers)
+          # -u: usuário padrão do Ubuntu
+          # --private-key: usa a chave que acabamos de criar
+          ansible all -i "172.22.0.29,172.22.0.30,172.22.0.31," \
+                  -m ping \
+                  -u ubuntu \
+                  --private-key private_key.pem
