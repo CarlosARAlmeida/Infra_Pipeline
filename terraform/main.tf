@@ -7,6 +7,8 @@ resource "proxmox_vm_qemu" "k8s_master" {
   agent = 1
   full_clone  = true
   scsihw = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
 
   vga {
     type = "std"
@@ -45,6 +47,8 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   clone       = "ubuntu-2404-template"
   full_clone  = true
   scsihw = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
 
   # IDs 201 e 202 para evitar o erro de 'ID 100 em uso'
   vmid        = 201 + count.index
