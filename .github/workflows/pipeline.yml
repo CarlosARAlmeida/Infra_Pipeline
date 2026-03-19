@@ -44,6 +44,17 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve
 
+      - name: Aguardar SSH (Porta 22) ficar disponível
+        run: |
+          echo "Aguardando as VMs responderem na porta 22..."
+          for ip in 172.22.0.29 172.22.0.30 172.22.0.31; do
+            while ! nc -z -w 5 $ip 22; do
+              echo "Aguardando $ip..."
+              sleep 5
+            done
+            echo "$ip está pronto!"
+          done  
+
       - name: Testar conexão com as VMs (Ansible Ping)
         if: github.ref == 'refs/heads/main'
         env:
