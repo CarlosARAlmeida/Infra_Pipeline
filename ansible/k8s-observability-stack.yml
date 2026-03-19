@@ -1,0 +1,39 @@
+---
+- name: Setup Observability Stack (Helm + Prometheus + Grafana)
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Baixar script de instalação do Helm
+      get_url:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        dest: /tmp/get_helm.sh
+        mode: '0755'
+
+    - name: Executar instalação do Helm
+      shell: /tmp/get_helm.sh
+      args:
+        creates: /usr/local/bin/helm
+
+    - name: Adicionar repositórios Helm (Prometheus e Grafana)
+      kubernetes.core.helm_repository:
+        name: "{{ item.name }}"
+        repo_url: "{{ item.url }}"
+      loop:
+        - { name: 'prometheus-community', url: 'https://prometheus-community.github.io/helm-charts' }
+        - { name: 'grafana', url: 'https://grafana.github.io/helm-charts' }
+
+    - name: Atualizar repositórios Helm
+      shell: helm repo update
+
+    - name: Deploy kube-prometheus-stack (Namespace observability)
+      kubernetes.core.helm:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        name: prometheus-stack
+        chart_ref: prometheus-community/kube-prometheus-stack
+        release_namespace: observability
+        create_namespace: true
+        values:
+          grafana:
+            service:
+              type: NodePort
+              nodePort: 32000 # Porta para acessarmos o Grafana
