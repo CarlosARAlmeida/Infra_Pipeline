@@ -50,8 +50,12 @@ resource "proxmox_vm_qemu" "k8s_master" {
   }
 
   ipconfig0 = "ip=172.22.0.29/23,gw=172.22.0.1"
-  sshkeys   = var.ssh_public_key
-}
+  # Atualização das Chaves (Injetando os dois cadeados)
+  sshkeys = <<EOF
+${var.ssh_public_key_ansible}
+${var.ssh_public_key_admin}
+EOF
+  }
 
 # Definição dos Workers
 resource "proxmox_vm_qemu" "k8s_workers" {
@@ -71,8 +75,6 @@ resource "proxmox_vm_qemu" "k8s_workers" {
     iothread = true
   }
   # -------------------------------------------
-
-
   bootdisk    = "scsi0"
 
 # Disco de Cloud-Init (ADICIONE ISTE)
@@ -113,5 +115,9 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   # Lógica de IP: Resultará em 172.22.0.30 e 172.22.0.31
   # Usei /23 para bater com o Master
   ipconfig0 = "ip=172.22.0.${30 + count.index}/23,gw=172.22.0.1"
-  sshkeys   = var.ssh_public_key
+  # Atualização das Chaves (Injetando os dois cadeados)
+  sshkeys = <<EOF
+${var.ssh_public_key_ansible}
+${var.ssh_public_key_admin}
+EOF
 }

@@ -1,4 +1,10 @@
 terraform {
+  backend "local" {
+    path = "/terraform-state/terraform.tfstate"
+  }
+}
+
+terraform {
   required_providers {
     proxmox = {
       source  = "Telmate/proxmox"

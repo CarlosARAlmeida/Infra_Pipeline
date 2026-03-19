@@ -14,10 +14,15 @@ jobs:
     
     # Colocar aqui no topo do job garante que todos os steps vejam as envs
     env:
+      TF_VAR_ssh_public_key_ansible: ${{ secrets.SSH_PUBLIC_KEY_ANSIBLE }}
+      TF_VAR_ssh_public_key_admin: ${{ secrets.SSH_PUBLIC_KEY_ADMIN }}
       TF_VAR_proxmox_api_url: ${{ secrets.PROXMOX_API_URL }}
       TF_VAR_proxmox_api_token_id: ${{ secrets.PROXMOX_API_TOKEN_ID }}
       TF_VAR_proxmox_api_token_secret: ${{ secrets.PROXMOX_API_TOKEN_SECRET }}
-      TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+      #TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
+        run: terraform apply -auto-approve
+
 
     defaults:
       run:
