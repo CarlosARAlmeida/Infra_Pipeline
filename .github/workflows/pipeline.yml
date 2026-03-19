@@ -111,3 +111,20 @@ jobs:
           ansible-playbook -i ansible/inventory.ini \
                            ansible/k3s-install.yml \
                            --private-key private_key.pem
+
+    # ... passos anteriores do Ansible (Prep e Install) ...
+
+      - name: Executar Deploy da Aplicação de Teste
+        if: github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          # Rodando o deploy da aplicação
+          ansible-playbook -i ansible/inventory.ini \
+                           ansible/k8s-app-deploy.yml \
+                           --private-key private_key.pem

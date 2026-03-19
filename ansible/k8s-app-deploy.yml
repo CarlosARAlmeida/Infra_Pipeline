@@ -1,0 +1,100 @@
+---
+- name: Deploy da Aplicação de Teste (Podinfo + Redis)
+  hosts: k8s_master
+  become: false  # Usamos o contexto do usuário ubuntu (kubeconfig)
+  tasks:
+    - name: Garantir que o Namespace 'observability-lab' existe
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: observability-lab
+
+    - name: Deploy do Backend (Redis)
+      kubernetes.core.k8s:
+        state: present
+        namespace: observability-lab
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: redis
+          spec:
+            selector:
+              matchLabels:
+                app: redis
+            template:
+              metadata:
+                labels:
+                  app: redis
+              spec:
+                containers:
+                - name: redis
+                  image: redis:7.0-alpine
+                  ports:
+                  - containerPort: 6379
+
+    - name: Expor o Backend (Redis Service)
+      kubernetes.core.k8s:
+        state: present
+        namespace: observability-lab
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: redis
+          spec:
+            selector:
+              app: redis
+            ports:
+            - protocol: TCP
+              port: 6379
+              targetPort: 6379
+
+    - name: Deploy do Frontend (Podinfo)
+      kubernetes.core.k8s:
+        state: present
+        namespace: observability-lab
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: podinfo
+          spec:
+            selector:
+              matchLabels:
+                app: podinfo
+            template:
+              metadata:
+                labels:
+                  app: podinfo
+              spec:
+                containers:
+                - name: podinfo
+                  image: ghcr.io/stefanprodan/podinfo:6.3.0
+                  env:
+                  - name: PODINFO_BACKEND_URL
+                    value: "http://redis:6379"  # Conectando ao Redis
+                  ports:
+                  - containerPort: 9898
+                    protocol: TCP
+
+    - name: Expor o Frontend (Podinfo Service - NodePort)
+      kubernetes.core.k8s:
+        state: present
+        namespace: observability-lab
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: podinfo
+          spec:
+            type: NodePort  # Expõe para fora do cluster
+            selector:
+              app: podinfo
+            ports:
+            - port: 80
+              targetPort: 9898
+              nodePort: 30080  # Porta acessível no IP de qualquer node
