@@ -11,7 +11,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
 
   # --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
   disk {
-    slot     = scsi0
+    slot     = "scsi0"
     size     = "20G"        # Tamanho desejado (deve ser >= ao do template)
     type     = "disk"
     storage  = "local-lvm"  # Nome exato do seu storage
@@ -57,7 +57,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
 
 # --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
   disk {
-    slot     = scsi0
+    slot     = "scsi0"
     size     = "20G"        # Tamanho desejado (deve ser >= ao do template)
     type     = "disk"
     storage  = "local-lvm"  # Nome exato do seu storage
