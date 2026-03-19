@@ -3,17 +3,19 @@
   hosts: k8s_master
   become: true
   tasks:
-    - name: Baixar script de instalação do Helm
-      get_url:
-        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-        dest: /tmp/get_helm.sh
-        mode: '0755'
+    - name: Baixar script de instalação do Helm (via curl para evitar bug de SSL do Python)
+      shell: |
+        curl -fsSL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod 700 /tmp/get_helm.sh
+      args:
+        creates: /tmp/get_helm.sh
 
     - name: Executar instalação do Helm
       shell: /tmp/get_helm.sh
       args:
         creates: /usr/local/bin/helm
 
+    # ... restante do playbook igual ao anterior ...
     - name: Adicionar repositórios Helm (Prometheus e Grafana)
       kubernetes.core.helm_repository:
         name: "{{ item.name }}"
@@ -36,4 +38,4 @@
           grafana:
             service:
               type: NodePort
-              nodePort: 32000 # Porta para acessarmos o Grafana
+              nodePort: 32000
