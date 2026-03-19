@@ -6,7 +6,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   vmid        = 200
   agent = 1
   full_clone  = true
-  scsihw = "virtio-scsi-pci"
+  scsihw = "virtio-scsi-single"
   bootdisk    = "scsi0"
 
   # --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
@@ -18,6 +18,13 @@ resource "proxmox_vm_qemu" "k8s_master" {
     iothread = true
   }
   # -------------------------------------------
+
+# Disco de Cloud-Init (ADICIONE ISTE)
+  disk {
+    slot     = "ide2"
+    type     = "cloudinit"
+    storage  = "local-lvm"
+  }
 
   vga {
     type = "std"
@@ -53,7 +60,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   target_node = "pve02"
   clone       = "ubuntu-2404-template"
   full_clone  = true
-  scsihw = "virtio-scsi-pci"
+  scsihw = "virtio-scsi-single"
 
 # --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
   disk {
@@ -66,6 +73,13 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   # -------------------------------------------
 
   bootdisk    = "scsi0"
+
+# Disco de Cloud-Init (ADICIONE ISTE)
+  disk {
+    slot     = "ide2"
+    type     = "cloudinit"
+    storage  = "local-lvm"
+  }
 
   # IDs 201 e 202 para evitar o erro de 'ID 100 em uso'
   vmid        = 201 + count.index
