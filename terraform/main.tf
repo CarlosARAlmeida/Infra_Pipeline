@@ -15,7 +15,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
     size     = "20G"        # Tamanho desejado (deve ser >= ao do template)
     type     = "scsi"
     storage  = "local-lvm"  # Nome exato do seu storage
-    iothread = 1
+    iothread = true
   }
   # -------------------------------------------
 
@@ -61,7 +61,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
     size     = "20G"        # Tamanho desejado (deve ser >= ao do template)
     type     = "scsi"
     storage  = "local-lvm"  # Nome exato do seu storage
-    iothread = 1
+    iothread = true
   }
   # -------------------------------------------
 
