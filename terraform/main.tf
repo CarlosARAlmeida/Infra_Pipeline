@@ -19,9 +19,20 @@ resource "proxmox_vm_qemu" "k8s_master" {
   }
   # -------------------------------------------
 
-  vga { type = "std" }
-  serial { id = 0; type = "socket" }
-  cpu { cores = 4; type = "host" }
+  vga {
+    type = "std"
+  }
+
+  serial {
+    id   = 0
+    type = "socket"
+  }
+
+  cpu {
+    cores = 4
+    type  = "host"
+  }
+
   memory = 4096
 
   network {
