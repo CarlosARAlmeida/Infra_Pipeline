@@ -14,8 +14,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: .
-        #working-directory: ./terraform
+        working-directory: ./terraform
 
 
     # Variáveis de ambiente para todo o Job
@@ -79,16 +78,17 @@ jobs:
 
       - name: Executar Preparação de SRE (Ansible)
         if: github.ref == 'refs/heads/main'
-        # Adicione esta linha para voltar à raiz do repositório
+        # Esta linha abaixo é o segredo: ela anula o default de ./terraform apenas para este passo
         working-directory: . 
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
         run: |
+          # Agora o bash está na raiz do projeto
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           
-          # Agora o caminho "ansible/k8s-prep.yml" estará correto
+          # O caminho "ansible/k8s-prep.yml" agora faz sentido para o Runner
           ansible-playbook -i "172.22.0.29,172.22.0.30,172.22.0.31," \
                            ansible/k8s-prep.yml \
                            -u ubuntu \
