@@ -14,7 +14,9 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./terraform
+        working-directory: .
+        #working-directory: ./terraform
+
 
     # Variáveis de ambiente para todo o Job
     env:
@@ -77,6 +79,8 @@ jobs:
 
       - name: Executar Preparação de SRE (Ansible)
         if: github.ref == 'refs/heads/main'
+        # Adicione esta linha para voltar à raiz do repositório
+        working-directory: . 
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
@@ -84,7 +88,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           
-          # Rodando o Playbook real em vez do ping
+          # Agora o caminho "ansible/k8s-prep.yml" estará correto
           ansible-playbook -i "172.22.0.29,172.22.0.30,172.22.0.31," \
                            ansible/k8s-prep.yml \
                            -u ubuntu \
