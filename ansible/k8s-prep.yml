@@ -1,0 +1,43 @@
+---
+- name: Preparar nodes para o Cluster K3s
+  hosts: all
+  become: true
+  tasks:
+    - name: Desativar SWAP imediatamente
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Remover SWAP do /etc/fstab para persistência
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+.*)$'
+        replace: '# \1'
+
+    - name: Carregar módulos do Kernel necessários (overlay e br_netfilter)
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+
+    - name: Aplicar módulos agora
+      modprobe:
+        name: "{{ item }}"
+      loop: [ 'overlay', 'br_netfilter' ]
+
+    - name: Configurar parâmetros de rede no Sysctl
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        - { key: 'net.ipv4.ip_forward', value: '1' }
+
+    - name: Instalar pacotes de suporte (NFS, Curl, etc)
+      apt:
+        name: [ 'curl', 'nfs-common', 'open-iscsi' ]
+        state: present
+        update_cache: yes

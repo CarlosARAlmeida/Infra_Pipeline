@@ -58,7 +58,6 @@ jobs:
             echo "$ip está pronto!"
           done
 
-
       - name: Testar conexão com as VMs (Ansible Ping)
         if: github.ref == 'refs/heads/main'
         env:
@@ -75,3 +74,18 @@ jobs:
                   -m ping \
                   -u ubuntu \
                   --private-key private_key.pem
+
+      - name: Executar Preparação de SRE (Ansible)
+        if: github.ref == 'refs/heads/main'
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          # Rodando o Playbook real em vez do ping
+          ansible-playbook -i "172.22.0.29,172.22.0.30,172.22.0.31," \
+                           ansible/k8s-prep.yml \
+                           -u ubuntu \
+                           --private-key private_key.pem
