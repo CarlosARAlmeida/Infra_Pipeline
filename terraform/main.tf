@@ -2,10 +2,11 @@
 resource "proxmox_vm_qemu" "k8s_master" {
   name        = "k8s-master-01"
   target_node = "pve02"
-  clone       = "ubuntu-2404-cloud-init"
+  clone       = "ubuntu-2404-template"
   vmid        = 200
   agent = 1
-  full_clone  = true # Recomendado para não depender do template após o deploy
+  full_clone  = true
+  boot = "order=scsi0;ide2"
 
   vga {
     type = "std"
@@ -22,7 +23,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   network {
     id     = 0
     model  = "virtio"
-    bridge = "vmbr1" # Certifique-se que a vmbr1 existe no pve02
+    bridge = "vmbr1"
   }
 
   serial {
@@ -40,11 +41,23 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   count       = 2
   name        = "k8s-worker-0${count.index + 1}"
   target_node = "pve02"
-  clone       = "ubuntu-2404-cloud-init"
+  clone       = "ubuntu-2404-template"
   full_clone  = true
+  boot = "order=scsi0;ide2"
   
   # IDs 201 e 202 para evitar o erro de 'ID 100 em uso'
   vmid        = 201 + count.index
+
+  agent = 1
+
+  vga {
+    type = "std"
+  }
+
+  serial {
+    id   = 0
+    type = "socket"
+  }
 
   cpu {
     cores = 2
@@ -52,7 +65,6 @@ resource "proxmox_vm_qemu" "k8s_workers" {
   }
 
   memory = 2048
-#  agent  = 1
 
   network {
     id     = 0
