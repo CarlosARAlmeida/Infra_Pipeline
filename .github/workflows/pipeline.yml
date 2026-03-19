@@ -45,15 +45,18 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Aguardar SSH (Porta 22) ficar disponível
+        shell: bash  # Garante que estamos usando o Bash e não o Sh
         run: |
           echo "Aguardando as VMs responderem na porta 22..."
           for ip in 172.22.0.29 172.22.0.30 172.22.0.31; do
-            while ! nc -z -w 5 $ip 22; do
-              echo "Aguardando $ip..."
+            echo "Checando $ip..."
+            # Tenta abrir um socket TCP na porta 22. Se falhar, espera 5 segundos.
+            until timeout 2 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null; do
+              echo "Aguardando $ip (ainda não respondeu)..."
               sleep 5
             done
             echo "$ip está pronto!"
-          done  
+          done
 
       - name: Testar conexão com as VMs (Ansible Ping)
         if: github.ref == 'refs/heads/main'
