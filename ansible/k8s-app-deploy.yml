@@ -1,10 +1,17 @@
 ---
 - name: Deploy da Aplicação de Teste (Podinfo + Redis)
   hosts: k8s_master
-  become: false  # Usamos o contexto do usuário ubuntu (kubeconfig)
+  become: true # Precisamos de root para instalar pacotes e ler o kubeconfig do K3s
   tasks:
+    - name: Instalar dependências de Python para o módulo K8s
+      apt:
+        name: [ 'python3-pip', 'python3-kubernetes', 'python3-yaml' ]
+        state: present
+        update_cache: yes
+
     - name: Garantir que o Namespace 'observability-lab' existe
       kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml # Onde o K3s guarda a config
         state: present
         definition:
           apiVersion: v1
@@ -14,6 +21,7 @@
 
     - name: Deploy do Backend (Redis)
       kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
         namespace: observability-lab
         definition:
@@ -38,6 +46,7 @@
 
     - name: Expor o Backend (Redis Service)
       kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
         namespace: observability-lab
         definition:
@@ -55,6 +64,7 @@
 
     - name: Deploy do Frontend (Podinfo)
       kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
         namespace: observability-lab
         definition:
@@ -76,13 +86,14 @@
                   image: ghcr.io/stefanprodan/podinfo:6.3.0
                   env:
                   - name: PODINFO_BACKEND_URL
-                    value: "http://redis:6379"  # Conectando ao Redis
+                    value: "http://redis:6379"
                   ports:
                   - containerPort: 9898
                     protocol: TCP
 
     - name: Expor o Frontend (Podinfo Service - NodePort)
       kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
         namespace: observability-lab
         definition:
@@ -91,10 +102,10 @@
           metadata:
             name: podinfo
           spec:
-            type: NodePort  # Expõe para fora do cluster
+            type: NodePort
             selector:
               app: podinfo
             ports:
             - port: 80
               targetPort: 9898
-              nodePort: 30080  # Porta acessível no IP de qualquer node
+              nodePort: 30080
