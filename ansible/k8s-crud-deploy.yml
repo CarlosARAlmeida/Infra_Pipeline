@@ -1,18 +1,19 @@
 ---
-- name: Deploy do CRUD Real (Python FastAPI + Postgres)
+- name: Deploy do Laboratório CRUD (Juice Shop + Postgres + Tracing)
   hosts: k8s_master
   become: true
   vars:
-    # Substitua pelo IP onde o seu Jaeger (Docker) está a correr
+    # IMPORTANTE: Substitua pelo IP real do servidor onde o Docker/Jaeger está rodando
     jaeger_host: "172.22.0.29" 
   tasks:
-    - name: Garantir Namespace crud-lab
+    - name: Criar o Namespace isolado para o Lab
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         name: crud-lab
         kind: Namespace
         state: present
 
+    # --- INFRAESTRUTURA DE BANCO DE DADOS ---
     - name: Deploy do PostgreSQL
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
@@ -39,11 +40,11 @@
                   - name: POSTGRES_PASSWORD
                     value: "senhadolab123"
                   - name: POSTGRES_DB
-                    value: "lab_db"
+                    value: "juiceshop"
                   ports:
                   - containerPort: 5432
 
-    - name: Service do PostgreSQL
+    - name: Criar Service para o PostgreSQL (DNS interno)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -58,8 +59,10 @@
               app: postgres
             ports:
             - port: 5432
+              targetPort: 5432
 
-    - name: Deploy da App CRUD Python (SQLAlchemy + OTel)
+    # --- APLICAÇÃO COM INSTRUMENTAÇÃO OTEL ---
+    - name: Deploy da Aplicação Juice Shop (CRUD & Tracing)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -81,21 +84,39 @@
               spec:
                 containers:
                 - name: crud-app
-                  # Imagem pública de um CRUD FastAPI pronto para instrumentação
-                  image: bkimminich/juice-shop:latest # Nota: Juice Shop é excelente para Tracing e Segurança
-                  # OU podes usar esta abaixo que é mais focada em Python/SQL pura:
-                  # image: nicolaslandriau/fastapi-postgresql-sample:latest
+                  image: bkimminich/juice-shop:latest
                   env:
-                  - name: DATABASE_URL
-                    value: "postgresql://postgres:senhadolab123@postgres-svc:5432/lab_db"
+                  # Configuração do Banco de Dados
+                  - name: NODE_ENV
+                    value: "production"
+                  # O Juice Shop usa esse formato para persistência externa
+                  - name: DB_TYPE
+                    value: "postgres"
+                  - name: DB_HOST
+                    value: "postgres-svc"
+                  - name: DB_PORT
+                    value: "5432"
+                  - name: DB_NAME
+                    value: "juiceshop"
+                  - name: DB_USERNAME
+                    value: "postgres"
+                  - name: DB_PASSWORD
+                    value: "senhadolab123"
+                  
+                  # --- CONFIGURAÇÃO DE OBSERVABILIDADE (O Pulo do Gato) ---
+                  - name: OTEL_TRACES_EXPORTER
+                    value: "otlp"
+                  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                    value: "http/protobuf"
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
                     value: "http://{{ jaeger_host }}:4318"
                   - name: OTEL_SERVICE_NAME
-                    value: "app-crud-contatos"
+                    value: "app-crud-juice"
+                  # -------------------------------------------------------
                   ports:
-                  - containerPort: 3000 # Porta interna da Juice Shop
+                  - containerPort: 3000
 
-    - name: Service da App (NodePort)
+    - name: Expor a Aplicação via NodePort
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
