@@ -1,9 +1,9 @@
 ---
-- name: Reconstrução do Laboratório CRUD (FastAPI + Postgres + OTel)
+- name: Ajuste do Laboratório CRUD (Adicionando Redis para Cache)
   hosts: k8s_master
   become: true
   vars:
-    jaeger_host: "172.22.0.87" # O IP que validamos com o curl
+    jaeger_host: "172.22.0.87"
   tasks:
     - name: Garantir Namespace crud-lab
       kubernetes.core.k8s:
@@ -12,8 +12,8 @@
         kind: Namespace
         state: present
 
-    # --- BANCO DE DADOS (POSTGRES) ---
-    - name: Deploy do PostgreSQL
+    # --- BACKEND PARA CACHE (REDIS) ---
+    - name: Deploy do Redis (Necessário para o /cache do Podinfo)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -22,28 +22,23 @@
           apiVersion: apps/v1
           kind: Deployment
           metadata:
-            name: postgres-db
+            name: redis-db
           spec:
             selector:
               matchLabels:
-                app: postgres
+                app: redis
             template:
               metadata:
                 labels:
-                  app: postgres
+                  app: redis
               spec:
                 containers:
-                - name: postgres
-                  image: postgres:15-alpine
-                  env:
-                  - name: POSTGRES_PASSWORD
-                    value: "senhadolab123"
-                  - name: POSTGRES_DB
-                    value: "labdb"
+                - name: redis
+                  image: redis:alpine
                   ports:
-                  - containerPort: 5432
+                  - containerPort: 6379
 
-    - name: Service do PostgreSQL
+    - name: Service do Redis
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -52,15 +47,15 @@
           apiVersion: v1
           kind: Service
           metadata:
-            name: postgres-svc
+            name: redis-svc
           spec:
             selector:
-              app: postgres
+              app: redis
             ports:
-            - port: 5432
+            - port: 6379
 
-    # --- APLICAÇÃO CRUD (PYTHON FASTAPI) ---
-    - name: Deploy da App CRUD (Instrumentada)
+    # --- APLICAÇÃO PODINFO (APONTANDO PARA REDIS) ---
+    - name: Deploy da App CRUD (Conectada ao Redis)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -82,12 +77,11 @@
               spec:
                 containers:
                 - name: crud-app
-                  # Imagem estável para labs de CRUD e OTel
-                  image: ghcr.io/stefanprodan/podinfo:6.3.5 
+                  image: ghcr.io/stefanprodan/podinfo:6.3.5
                   env:
+                  # Agora apontando para o REDIS (protocolo tcp)
                   - name: PODINFO_BACKEND_URL
-                    value: "http://postgres-svc:5432"
-                  # Configurações do OpenTelemetry (OTLP)
+                    value: "tcp://redis-svc:6379"
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
                     value: "http://{{ jaeger_host }}:4318"
                   - name: OTEL_SERVICE_NAME
