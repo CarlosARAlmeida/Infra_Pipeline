@@ -4,7 +4,7 @@
   become: true
   vars:
     # IMPORTANTE: Substitua pelo IP real do servidor onde o Docker/Jaeger está rodando
-    jaeger_host: "172.22.0.29" 
+    jaeger_host: "172.22.0.87" 
   tasks:
     - name: Criar o Namespace isolado para o Lab
       kubernetes.core.k8s:
@@ -85,6 +85,9 @@
                 containers:
                 - name: crud-app
                   image: bkimminich/juice-shop:latest
+                  command: ["/bin/sh", "-c"]
+                  args: 
+                    - "node -r @opentelemetry/api -r @opentelemetry/sdk-node build/app.js"
                   env:
                   # Configuração do Banco de Dados
                   - name: NODE_ENV
