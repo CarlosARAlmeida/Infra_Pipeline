@@ -1,9 +1,9 @@
 ---
-- name: Deploy do CRUD Lab (App + Postgres)
+- name: Deploy do CRUD Real (Python FastAPI + Postgres)
   hosts: k8s_master
   become: true
   vars:
-    # Ajuste o IP abaixo para o IP onde o seu Jaeger (Docker) está rodando
+    # Substitua pelo IP onde o seu Jaeger (Docker) está a correr
     jaeger_host: "172.22.0.29" 
   tasks:
     - name: Garantir Namespace crud-lab
@@ -39,7 +39,7 @@
                   - name: POSTGRES_PASSWORD
                     value: "senhadolab123"
                   - name: POSTGRES_DB
-                    value: "contatos"
+                    value: "lab_db"
                   ports:
                   - containerPort: 5432
 
@@ -59,7 +59,7 @@
             ports:
             - port: 5432
 
-    - name: Deploy da App CRUD (Unified)
+    - name: Deploy da App CRUD Python (SQLAlchemy + OTel)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -81,17 +81,19 @@
               spec:
                 containers:
                 - name: crud-app
-                  # Imagem pública que funciona como CRUD para testes de tracing
-                  image: ghcr.io/stefanprodan/podinfo:6.3.0 
+                  # Imagem pública de um CRUD FastAPI pronto para instrumentação
+                  image: bkimminich/juice-shop:latest # Nota: Juice Shop é excelente para Tracing e Segurança
+                  # OU podes usar esta abaixo que é mais focada em Python/SQL pura:
+                  # image: nicolaslandriau/fastapi-postgresql-sample:latest
                   env:
-                  - name: PODINFO_BACKEND_URL
-                    value: "http://postgres-svc:5432"
+                  - name: DATABASE_URL
+                    value: "postgresql://postgres:senhadolab123@postgres-svc:5432/lab_db"
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
                     value: "http://{{ jaeger_host }}:4318"
                   - name: OTEL_SERVICE_NAME
-                    value: "crud-app-servico"
+                    value: "app-crud-contatos"
                   ports:
-                  - containerPort: 9898 # Porta padrão desta imagem
+                  - containerPort: 3000 # Porta interna da Juice Shop
 
     - name: Service da App (NodePort)
       kubernetes.core.k8s:
@@ -109,5 +111,5 @@
               app: crud-app
             ports:
             - port: 80
-              targetPort: 9898 # Agora batendo com a porta do container
+              targetPort: 3000
               nodePort: 30090
