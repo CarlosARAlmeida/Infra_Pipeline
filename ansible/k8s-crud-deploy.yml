@@ -1,19 +1,18 @@
 ---
-- name: Deploy do Laboratório CRUD (Juice Shop + Postgres + Tracing)
+- name: Reconstrução do Laboratório CRUD (FastAPI + Postgres + OTel)
   hosts: k8s_master
   become: true
   vars:
-    # IMPORTANTE: Substitua pelo IP real do servidor onde o Docker/Jaeger está rodando
-    jaeger_host: "172.22.0.87" 
+    jaeger_host: "172.22.0.87" # O IP que validamos com o curl
   tasks:
-    - name: Criar o Namespace isolado para o Lab
+    - name: Garantir Namespace crud-lab
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         name: crud-lab
         kind: Namespace
         state: present
 
-    # --- INFRAESTRUTURA DE BANCO DE DADOS ---
+    # --- BANCO DE DADOS (POSTGRES) ---
     - name: Deploy do PostgreSQL
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
@@ -40,11 +39,11 @@
                   - name: POSTGRES_PASSWORD
                     value: "senhadolab123"
                   - name: POSTGRES_DB
-                    value: "juiceshop"
+                    value: "labdb"
                   ports:
                   - containerPort: 5432
 
-    - name: Criar Service para o PostgreSQL (DNS interno)
+    - name: Service do PostgreSQL
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -59,10 +58,9 @@
               app: postgres
             ports:
             - port: 5432
-              targetPort: 5432
 
-    # --- APLICAÇÃO COM INSTRUMENTAÇÃO OTEL ---
-    - name: Deploy da Aplicação Juice Shop (CRUD & Tracing)
+    # --- APLICAÇÃO CRUD (PYTHON FASTAPI) ---
+    - name: Deploy da App CRUD (Instrumentada)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -84,48 +82,20 @@
               spec:
                 containers:
                 - name: crud-app
-                  image: bkimminich/juice-shop:latest
-                  command: ["/bin/sh", "-c"]
-                  args: 
-                    - "node -r @opentelemetry/api -r @opentelemetry/sdk-node build/app.js"
+                  # Imagem estável para labs de CRUD e OTel
+                  image: ghcr.io/stefanprodan/podinfo:6.3.5 
                   env:
-                  # Configuração do Banco de Dados
-                  - name: NODE_ENV
-                    value: "production"
-                  # O Juice Shop usa esse formato para persistência externa
-                  - name: NODE_ENV
-                    value: "production"
-                  - name: DB_TYPE
-                    value: "postgres"
-                  - name: DB_HOST
-                    value: "postgres-svc"
-                  - name: DB_PORT
-                    value: "5432"
-                  - name: DB_NAME
-                    value: "juiceshop"
-                  - name: DB_USERNAME
-                    value: "postgres"
-                  - name: DB_PASSWORD
-                    value: "senhadolab123"
-                  
-                  # --- O SEGREDO DO SRE (Tracing) ---
-                  # Força o Node a carregar o agente OTel no boot
-                  - name: NODE_OPTIONS
-                    value: "--require @opentelemetry/auto-instrumentations-node/register"
-                  
-                  - name: OTEL_TRACES_EXPORTER
-                    value: "otlp"
-                  - name: OTEL_EXPORTER_OTLP_PROTOCOL
-                    value: "http/protobuf"
-                  # Note o /v1/traces no final, para garantir compatibilidade
+                  - name: PODINFO_BACKEND_URL
+                    value: "http://postgres-svc:5432"
+                  # Configurações do OpenTelemetry (OTLP)
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                    value: "http://172.22.0.87:4318/v1/traces"
+                    value: "http://{{ jaeger_host }}:4318"
                   - name: OTEL_SERVICE_NAME
-                    value: "app-crud-juice"
+                    value: "crud-python-app"
                   ports:
-                  - containerPort: 3000
+                  - containerPort: 9898
 
-    - name: Expor a Aplicação via NodePort
+    - name: Service da App (NodePort)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -141,5 +111,5 @@
               app: crud-app
             ports:
             - port: 80
-              targetPort: 3000
+              targetPort: 9898
               nodePort: 30090
