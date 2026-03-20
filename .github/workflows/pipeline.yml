@@ -114,7 +114,7 @@ jobs:
 
     # ... passos anteriores do Ansible (Prep e Install) ...
 
-      - name: Executar Deploy da Aplicação de Teste
+      - name: Executar Deploy da Aplicação CRUD de Teste
         if: github.ref == 'refs/heads/main'
         working-directory: .
         env:
@@ -126,7 +126,7 @@ jobs:
           
           # Rodando o deploy da aplicação
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/k8s-app-deploy.yml \
+                           ansible/k8s-crud-deploy.yml \
                            --private-key private_key.pem
 
       - name: Instalar Stack de Observabilidade (Prometheus/Grafana)
