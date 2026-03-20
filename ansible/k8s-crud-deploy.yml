@@ -54,7 +54,7 @@
             ports:
             - port: 6379
 
-    # --- APLICAÇÃO PODINFO (APONTANDO PARA REDIS) ---
+    # --- APLICAÇÃO PODINFO (CORRIGIDA) ---
     - name: Deploy da App CRUD (Conectada ao Redis)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
@@ -79,9 +79,10 @@
                 - name: crud-app
                   image: ghcr.io/stefanprodan/podinfo:6.3.5
                   env:
-                  # Agora apontando para o REDIS (protocolo tcp)
-                  - name: PODINFO_BACKEND_URL
+                  # --- A VARIÁVEL CORRETA PARA O /CACHE ---
+                  - name: PODINFO_CACHE_SERVER
                     value: "tcp://redis-svc:6379"
+                  # ----------------------------------------
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
                     value: "http://{{ jaeger_host }}:4318"
                   - name: OTEL_SERVICE_NAME
