@@ -79,12 +79,15 @@
                 - name: crud-app
                   image: ghcr.io/stefanprodan/podinfo:6.3.5
                   env:
-                  # --- A VARIÁVEL CORRETA PARA O /CACHE ---
+                  # 1. Ajuste do Redis: Apenas o endereço, sem o "tcp://"
                   - name: PODINFO_CACHE_SERVER
-                    value: "tcp://redis-svc:6379"
-                  # ----------------------------------------
+                    value: "redis-svc:6379"
+                  
+                  # 2. Ajuste do Tracing: Essencial para o Jaeger no .87
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                    value: "http://{{ jaeger_host }}:4318"
+                    value: "http://172.22.0.87:4318"
+                  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                    value: "http/protobuf" # <--- Sem isso, o Jaeger ignora o tráfego na 4318
                   - name: OTEL_SERVICE_NAME
                     value: "crud-python-app"
                   ports:
