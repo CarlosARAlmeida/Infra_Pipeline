@@ -81,7 +81,7 @@
                   env:
                   # 1. Ajuste do Redis: Apenas o endereço, sem o "tcp://"
                   - name: PODINFO_CACHE_SERVER
-                    value: "redis-svc:6379"
+                    value: "redis://redis-svc:6379"
                   
                   # 2. Ajuste do Tracing: Essencial para o Jaeger no .87
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
