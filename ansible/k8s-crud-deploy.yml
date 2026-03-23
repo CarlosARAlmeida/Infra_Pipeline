@@ -82,7 +82,10 @@
                   # 1. Ajuste do Redis: Apenas o endereço, sem o "tcp://"
                   - name: PODINFO_CACHE_SERVER
                     value: "redis://redis-svc:6379"
-                  
+                  - name: OTEL_LOG_LEVEL
+                    value: "debug" # Vai nos mostrar no log se ele falhar ao enviar para o .87
+                  - name: OTEL_TRACES_SAMPLER
+                    value: "always_on" # Garante que 100% das requisições gerem traces
                   # 2. Ajuste do Tracing: Essencial para o Jaeger no .87
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
                     value: "http://172.22.0.87:4318/v1/traces"
