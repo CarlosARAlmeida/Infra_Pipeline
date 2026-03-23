@@ -96,6 +96,7 @@
                   ports:
                   - containerPort: 9898
 
+
     - name: Service da App (NodePort)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
