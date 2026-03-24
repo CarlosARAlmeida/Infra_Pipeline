@@ -77,7 +77,8 @@
                       separator: /
                       replacement: /var/log/pods/*$1/*.log
                       target_label: __path__
-
+ 
+ 
     - name: Deploy do Promtail (DaemonSet Corrigido)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
