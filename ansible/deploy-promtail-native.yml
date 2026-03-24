@@ -1,11 +1,17 @@
 - name: Injetar Promtail Nativo nos Nodes (Master e Workers)
-  hosts: all  # Importante: Rodar em todas as máquinas do cluster
+  hosts: all
   become: true
   tasks:
-    - name: Baixar binário do Promtail
-      get_url:
-        url: "https://github.com/grafana/loki/releases/download/v2.9.4/promtail-linux-amd64.zip"
-        dest: /tmp/promtail.zip
+    - name: Baixar binário do Promtail via Curl (Contorno do bug de HTTPS)
+      command: "curl -L https://github.com/grafana/loki/releases/download/v2.9.4/promtail-linux-amd64.zip -o /tmp/promtail.zip"
+      args:
+        creates: /tmp/promtail.zip # Só baixa se o arquivo não existir
+
+    - name: Instalar unzip se necessário
+      apt:
+        name: unzip
+        state: present
+        update_cache: yes
 
     - name: Extrair binário para /usr/local/bin
       unarchive:
@@ -19,7 +25,7 @@
         path: /etc/promtail
         state: directory
 
-    - name: Injetar Configuração (Lógica de SRE para extrair Labels do Path)
+    - name: Injetar Configuração (Lógica de Labels via Path)
       copy:
         dest: /etc/promtail/config.yml
         content: |
@@ -37,7 +43,6 @@
                     node: "{{ inventory_hostname }}"
                     __path__: /var/log/pods/*/*/*.log
               
-              # Essa regra extrai o Namespace e o Pod direto do nome da pasta no Debian
               pipeline_stages:
                 - regex:
                     source: filename
@@ -52,7 +57,7 @@
         dest: /etc/systemd/system/promtail.service
         content: |
           [Unit]
-          Description=Promtail Service (Monitorando Logs do K3s)
+          Description=Promtail Service (Native)
           After=network.target
 
           [Service]
