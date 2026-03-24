@@ -2,7 +2,7 @@
   hosts: k8s_master
   become: true
   tasks:
-    - name: RBAC para o Promtail (Garantir permissões primeiro)
+    - name: RBAC para o Promtail (Permissões de Leitura)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -33,7 +33,7 @@
               name: promtail-clusterrole
               apiGroup: rbac.authorization.k8s.io
 
-    - name: Criar ConfigMap do Promtail (Lente Corrigida)
+    - name: Criar ConfigMap do Promtail (Caminhos K3s)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -57,14 +57,14 @@
                   kubernetes_sd_configs:
                     - role: pod
                   relabel_configs:
-                    # 1. Filtro Crítico: Faz o Promtail olhar apenas para os pods do SEU nó atual
+                    # 1. Filtra para cada Promtail ler apenas os pods do SEU nó atual
                     - source_labels: [__meta_kubernetes_pod_node_name]
-                      target_label: __host__
+                      target_label: node_name
                     - action: keep
-                      regex: (.*)
-                      source_labels: [__host__]
+                      regex: ${HOSTNAME}
+                      source_labels: [node_name]
                     
-                    # 2. Labels para o Grafana
+                    # 2. Labels de Identificação no Grafana
                     - source_labels: [__meta_kubernetes_namespace]
                       target_label: namespace
                     - source_labels: [__meta_kubernetes_pod_name]
@@ -72,14 +72,14 @@
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
 
-                    # 3. Mapeamento de Log para K3s no Debian
-                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-                      separator: /
-                      replacement: /var/log/pods/*$1/*.log
+                    # 3. O SEGREDO DO K3s: Monta o caminho /var/log/pods/ns_pod_uid/container/*.log
+                    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      separator: _
+                      action: replace
+                      replacement: /var/log/pods/$1_$2_$3/$4/*.log
                       target_label: __path__
- 
- 
-    - name: Deploy do Promtail (DaemonSet Corrigido)
+
+    - name: Deploy do Promtail (DaemonSet como Root)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -97,7 +97,7 @@
               metadata:
                 labels:
                   name: promtail
-              spec: # <-- Indentação corrigida aqui
+              spec:
                 serviceAccountName: promtail-sa
                 securityContext:
                   runAsUser: 0
@@ -107,7 +107,7 @@
                   image: grafana/promtail:2.9.4
                   args:
                   - -config.file=/etc/promtail/promtail.yaml
-                  env: # <-- Injetando o nome do nó para o Promtail se localizar
+                  env: 
                     - name: HOSTNAME
                       valueFrom:
                         fieldRef:
