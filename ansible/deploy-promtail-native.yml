@@ -1,0 +1,72 @@
+- name: Injetar Promtail Nativo nos Nodes (Master e Workers)
+  hosts: all  # Importante: Rodar em todas as máquinas do cluster
+  become: true
+  tasks:
+    - name: Baixar binário do Promtail
+      get_url:
+        url: "https://github.com/grafana/loki/releases/download/v2.9.4/promtail-linux-amd64.zip"
+        dest: /tmp/promtail.zip
+
+    - name: Extrair binário para /usr/local/bin
+      unarchive:
+        src: /tmp/promtail.zip
+        dest: /usr/local/bin/
+        remote_src: yes
+        mode: '0755'
+
+    - name: Criar diretório de configuração
+      file:
+        path: /etc/promtail
+        state: directory
+
+    - name: Injetar Configuração (Lógica de SRE para extrair Labels do Path)
+      copy:
+        dest: /etc/promtail/config.yml
+        content: |
+          server:
+            http_listen_port: 9080
+
+          clients:
+            - url: http://172.22.0.87:3100/loki/api/v1/push
+
+          scrape_configs:
+            - job_name: kubernetes-logs-direto
+              static_configs:
+                - targets: [localhost]
+                  labels:
+                    node: "{{ inventory_hostname }}"
+                    __path__: /var/log/pods/*/*/*.log
+              
+              # Essa regra extrai o Namespace e o Pod direto do nome da pasta no Debian
+              pipeline_stages:
+                - regex:
+                    source: filename
+                    expression: "/var/log/pods/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-z0-9-]+)/(?P<container_name>[^/]+)/"
+                - labels:
+                    namespace:
+                    pod_name:
+                    container_name:
+
+    - name: Criar Unidade de Serviço Systemd
+      copy:
+        dest: /etc/systemd/system/promtail.service
+        content: |
+          [Unit]
+          Description=Promtail Service (Monitorando Logs do K3s)
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          ExecStart=/usr/local/bin/promtail-linux-amd64 -config.file=/etc/promtail/config.yml
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Ativar e Iniciar o Promtail
+      systemd:
+        name: promtail
+        state: restarted
+        enabled: yes
+        daemon_reload: yes

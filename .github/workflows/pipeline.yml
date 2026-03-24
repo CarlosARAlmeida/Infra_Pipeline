@@ -114,7 +114,7 @@ jobs:
 
     # ... passos anteriores do Ansible (Prep e Install) ...
 
-      - name: Executar Deploy do Promtail
+      - name: Executar Deploy do Promtail Native
         if: github.ref == 'refs/heads/main'
         working-directory: .
         env:
@@ -126,7 +126,7 @@ jobs:
           
           # Rodando o deploy da aplicação
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/k8s-promtail-deploy.yml \
+                           ansible/deploy-promtail-native.yml \
                            --private-key private_key.pem
 
       - name: Executar Deploy da Aplicação CRUD de Teste
