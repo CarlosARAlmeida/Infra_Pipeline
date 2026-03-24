@@ -33,7 +33,7 @@
               name: promtail-clusterrole
               apiGroup: rbac.authorization.k8s.io
 
-    - name: Criar ConfigMap do Promtail (Estratégia Globbing)
+    - name: Criar ConfigMap do Promtail (Ajuste de Nó + Path)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -57,24 +57,28 @@
                   kubernetes_sd_configs:
                     - role: pod
                   relabel_configs:
-                    # 1. Filtra apenas o namespace de interesse
-                    - source_labels: [__meta_kubernetes_namespace]
+                    # 1. SÓ OLHA O PRÓPRIO NÓ: Evita que o Master tente ler o Worker
+                    - source_labels: [__meta_kubernetes_pod_node_name]
                       action: keep
-                      regex: crud-lab
+                      regex: ${HOSTNAME}
 
                     # 2. Labels para o Grafana
+                    - source_labels: [__meta_kubernetes_namespace]
+                      target_label: namespace
                     - source_labels: [__meta_kubernetes_pod_name]
                       target_label: pod
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
 
-                    # 3. O MAPA (Simplificado): Usa apenas o UID para achar a pasta
-                    # K3s no Debian usa: /var/log/pods/NS_POD_UID/CONTAINER/0.log
-                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-                      separator: /
+                    # 3. CONSTRUÇÃO DO PATH (Bate com o seu 'ls -lh')
+                    # Formato K3s: /var/log/pods/namespace_podname_uid/container/*.log
+                    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      separator: _
                       action: replace
-                      replacement: /var/log/pods/*$1/$2/*.log
                       target_label: __path__
+                      # O regex abaixo captura: namespace(1)_pod(2)_uid(3) / container(4)
+                      regex: (.+)_(.+)_(.+)_(.+)
+                      replacement: /var/log/pods/${1}_${2}_${3}/${4}/*.log
 
     - name: Deploy do Promtail (DaemonSet como Root)
       kubernetes.core.k8s:
