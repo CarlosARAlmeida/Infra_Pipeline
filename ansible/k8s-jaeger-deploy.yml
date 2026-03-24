@@ -1,5 +1,5 @@
 - name: Playbook para Deploy do Jaeger no K3s
-  hosts: k8s_masters  # <--- Verifique se este nome está igual ao seu inventory.ini
+  hosts: k8s_master  # <--- Verifique se este nome está igual ao seu inventory.ini
   become: true        # Garante privilégios de root para ler o k3s.yaml
   tasks:
     - name: Deploy do Jaeger All-in-One
