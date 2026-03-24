@@ -3,7 +3,7 @@
   hosts: k8s_master
   become: true
   vars:
-    jaeger_host: "172.22.0.87"
+    jaeger_host: "172.22.0.29"
   tasks:
     - name: Garantir Namespace crud-lab
       kubernetes.core.k8s:
@@ -88,7 +88,7 @@
                     value: "always_on" # Garante que 100% das requisições gerem traces
                   # 2. Ajuste do Tracing: Essencial para o Jaeger no .87
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                    value: "http://172.22.0.87:4318"
+                    value: "http://172.22.0.29:4318"
                   - name: OTEL_EXPORTER_OTLP_PROTOCOL
                     value: "http/protobuf" # <--- Sem isso, o Jaeger ignora o tráfego na 4318
                   - name: OTEL_SERVICE_NAME
