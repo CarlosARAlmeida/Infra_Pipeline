@@ -52,29 +52,30 @@
               clients:
                 - url: http://172.22.0.87:3100/loki/api/v1/push
 
-              scrape_configs:
-                - job_name: kubernetes-pods
-                  kubernetes_sd_configs:
-                    - role: pod
-                  relabel_configs:
-                    # 1. Filtra apenas o seu namespace de estudo
+              relabel_configs:
+                    # 1. Labels para o Grafana
                     - source_labels: [__meta_kubernetes_namespace]
-                      action: keep
-                      regex: crud-lab
-
-                    # 2. Labels básicas para indexação no Loki
+                      target_label: namespace
                     - source_labels: [__meta_kubernetes_pod_name]
                       target_label: pod
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
 
-                    # 3. O PULO DO GATO: Mapeamento via UID + Globbing
-                    # Usamos o asterisco para ignorar o prefixo 'namespace_podname_'
-                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-                      separator: /
+                    # 2. O MAPA DEFINITIVO (Formato K3s/Debian)
+                    # Vamos juntar Namespace, Pod e UID com "_" e o Container com "/"
+                    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      separator: _
                       action: replace
-                      replacement: /var/log/pods/*$1/$2/*.log
+                      # Aqui o Regex pega tudo até o último "_" (que separa o container)
+                      regex: (.*)_(.*)
+                      replacement: /var/log/pods/${1}/${2}/*.log
                       target_label: __path__
+
+                    # 3. Filtro para o seu Lab
+                    - source_labels: [namespace]
+                      action: keep
+                      regex: crud-lab
+
 
     - name: Deploy do Promtail (DaemonSet como Root)
       kubernetes.core.k8s:
