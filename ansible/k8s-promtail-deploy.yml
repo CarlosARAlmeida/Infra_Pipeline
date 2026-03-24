@@ -26,17 +26,19 @@
                   kubernetes_sd_configs:
                     - role: pod
                   relabel_configs:
+                    # 1. Trazemos labels básicas para o Loki
                     - source_labels: [__meta_kubernetes_namespace]
-                      action: keep
-                      regex: crud-lab
+                      target_label: namespace
                     - source_labels: [__meta_kubernetes_pod_name]
                       target_label: pod
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
-                    # Estratégia de SRE: Usar o symlink do container
-                    - replacement: /var/log/containers/*$1*.log
+
+                    # 2. O MAPA DO TESOURO: Onde estão os logs físicos?
+                    # No K3s/Debian, este é o padrão mais seguro:
+                    - replacement: /var/log/pods/*$1/*.log
                       separator: /
-                      source_labels: [__meta_kubernetes_pod_name]
+                      source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
                       target_label: __path__
 
     - name: Deploy do Promtail (DaemonSet)
