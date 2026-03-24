@@ -129,6 +129,20 @@ jobs:
                            ansible/k8s-crud-deploy.yml \
                            --private-key private_key.pem
 
+      - name: Instalar Jaeger Tracing 
+        if: github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          ansible-playbook -i ansible/inventory.ini \
+                           ansible/k8s-jaeger-deploy.yml \
+                           --private-key private_key.pem        
+
       - name: Instalar Stack de Observabilidade (Prometheus/Grafana)
         if: github.ref == 'refs/heads/main'
         working-directory: .
