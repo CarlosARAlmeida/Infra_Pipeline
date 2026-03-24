@@ -1,5 +1,5 @@
 - name: Playbook para Deploy do Promtail no K3s
-  hosts: all
+  hosts: k8s_master
   become: true
   tasks:
     - name: Criar ConfigMap do Promtail

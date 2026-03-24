@@ -114,7 +114,7 @@ jobs:
 
     # ... passos anteriores do Ansible (Prep e Install) ...
 
-      - name: Executar Deploy do Proomtail
+      - name: Executar Deploy do Promtail
         if: github.ref == 'refs/heads/main'
         working-directory: .
         env:
