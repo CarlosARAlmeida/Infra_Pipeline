@@ -2,85 +2,7 @@
   hosts: k8s_master
   become: true
   tasks:
-    - name: Criar ConfigMap do Promtail
-      kubernetes.core.k8s:
-        kubeconfig: /etc/rancher/k3s/k3s.yaml
-        state: present
-        definition:
-          apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: promtail-config
-            namespace: crud-lab
-          data:
-            promtail.yaml: |
-              clients:
-                - url: http://172.22.0.87:3100/loki/api/v1/push
-
-              scrape_configs:
-                - job_name: kubernetes-pods
-                  kubernetes_sd_configs:
-                    - role: pod
-                  relabel_configs:
-                    # Removemos o "keep" para ele enxergar TODOS os pods do cluster
-                    - source_labels: [__meta_kubernetes_pod_name]
-                      target_label: pod
-                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-                      replacement: /var/log/pods/*$1/*.log
-                      separator: /
-                      target_label: __path__
-
-    - name: Deploy do Promtail (DaemonSet)
-      kubernetes.core.k8s:
-        kubeconfig: /etc/rancher/k3s/k3s.yaml
-        state: present
-        definition:
-          apiVersion: apps/v1
-          kind: DaemonSet
-          metadata:
-            name: promtail
-            namespace: crud-lab
-          spec:
-            selector:
-              matchLabels:
-                name: promtail
-            template:
-              metadata:
-                labels:
-                  name: promtail
-            spec:
-              serviceAccountName: promtail-sa
-              securityContext:
-                runAsUser: 0
-                runAsGroup: 0
-              containers:
-              - name: promtail
-                image: grafana/promtail:2.9.4
-                args:
-                - -config.file=/etc/promtail/promtail.yaml
-                securityContext:
-                  privileged: true # Para garantir acesso aos logs do host
-                volumeMounts:
-                - name: pods-logs
-                  mountPath: /var/log/pods
-                  readOnly: true
-                - name: containers-logs
-                  mountPath: /var/log/containers
-                  readOnly: true
-                - name: config
-                  mountPath: /etc/promtail
-              volumes:
-              - name: pods-logs
-                hostPath:
-                  path: /var/log/pods
-              - name: containers-logs
-                hostPath:
-                  path: /var/log/containers
-              - name: config
-                configMap:
-                  name: promtail-config
-
-    - name: RBAC para o Promtail (ServiceAccount e ClusterRole)
+    - name: RBAC para o Promtail (Garantir permissões primeiro)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -110,3 +32,97 @@
               kind: ClusterRole
               name: promtail-clusterrole
               apiGroup: rbac.authorization.k8s.io
+
+    - name: Criar ConfigMap do Promtail (Lente Corrigida)
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: promtail-config
+            namespace: crud-lab
+          data:
+            promtail.yaml: |
+              server:
+                http_listen_port: 9080
+                grpc_listen_port: 0
+
+              clients:
+                - url: http://172.22.0.87:3100/loki/api/v1/push
+
+              scrape_configs:
+                - job_name: kubernetes-pods
+                  kubernetes_sd_configs:
+                    - role: pod
+                  relabel_configs:
+                    # 1. Filtro Crítico: Faz o Promtail olhar apenas para os pods do SEU nó atual
+                    - source_labels: [__meta_kubernetes_pod_node_name]
+                      target_label: __host__
+                    - action: keep
+                      regex: (.*)
+                      source_labels: [__host__]
+                    
+                    # 2. Labels para o Grafana
+                    - source_labels: [__meta_kubernetes_namespace]
+                      target_label: namespace
+                    - source_labels: [__meta_kubernetes_pod_name]
+                      target_label: pod
+                    - source_labels: [__meta_kubernetes_container_name]
+                      target_label: container
+
+                    # 3. Mapeamento de Log para K3s no Debian
+                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      separator: /
+                      replacement: /var/log/pods/*$1/*.log
+                      target_label: __path__
+
+    - name: Deploy do Promtail (DaemonSet Corrigido)
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: DaemonSet
+          metadata:
+            name: promtail
+            namespace: crud-lab
+          spec:
+            selector:
+              matchLabels:
+                name: promtail
+            template:
+              metadata:
+                labels:
+                  name: promtail
+              spec: # <-- Indentação corrigida aqui
+                serviceAccountName: promtail-sa
+                securityContext:
+                  runAsUser: 0
+                  runAsGroup: 0
+                containers:
+                - name: promtail
+                  image: grafana/promtail:2.9.4
+                  args:
+                  - -config.file=/etc/promtail/promtail.yaml
+                  env: # <-- Injetando o nome do nó para o Promtail se localizar
+                    - name: HOSTNAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: spec.nodeName
+                  securityContext:
+                    privileged: true
+                  volumeMounts:
+                  - name: pods-logs
+                    mountPath: /var/log/pods
+                    readOnly: true
+                  - name: config
+                    mountPath: /etc/promtail
+                volumes:
+                - name: pods-logs
+                  hostPath:
+                    path: /var/log/pods
+                - name: config
+                  configMap:
+                    name: promtail-config
