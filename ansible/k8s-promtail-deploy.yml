@@ -2,7 +2,7 @@
   hosts: k8s_master
   become: true
   tasks:
-    - name: RBAC para o Promtail (Identidade e Permissões)
+    - name: RBAC para o Promtail (Garantir permissões)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -33,7 +33,7 @@
               name: promtail-clusterrole
               apiGroup: rbac.authorization.k8s.io
 
-    - name: Criar ConfigMap do Promtail (Estratégia de Globbing)
+    - name: Criar ConfigMap do Promtail (Estratégia Globbing)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -52,30 +52,29 @@
               clients:
                 - url: http://172.22.0.87:3100/loki/api/v1/push
 
-              relabel_configs:
-                    # 1. Labels para o Grafana
+              scrape_configs:
+                - job_name: kubernetes-pods
+                  kubernetes_sd_configs:
+                    - role: pod
+                  relabel_configs:
+                    # 1. Filtra apenas o namespace de interesse
                     - source_labels: [__meta_kubernetes_namespace]
-                      target_label: namespace
+                      action: keep
+                      regex: crud-lab
+
+                    # 2. Labels para o Grafana
                     - source_labels: [__meta_kubernetes_pod_name]
                       target_label: pod
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
 
-                    # 2. O MAPA DEFINITIVO (Formato K3s/Debian)
-                    # Vamos juntar Namespace, Pod e UID com "_" e o Container com "/"
-                    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-                      separator: _
+                    # 3. O MAPA (Simplificado): Usa apenas o UID para achar a pasta
+                    # K3s no Debian usa: /var/log/pods/NS_POD_UID/CONTAINER/0.log
+                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      separator: /
                       action: replace
-                      # Aqui o Regex pega tudo até o último "_" (que separa o container)
-                      regex: (.*)_(.*)
-                      replacement: /var/log/pods/${1}/${2}/*.log
+                      replacement: /var/log/pods/*$1/$2/*.log
                       target_label: __path__
-
-                    # 3. Filtro para o seu Lab
-                    - source_labels: [namespace]
-                      action: keep
-                      regex: crud-lab
-
 
     - name: Deploy do Promtail (DaemonSet como Root)
       kubernetes.core.k8s:
@@ -96,7 +95,7 @@
                 labels:
                   name: promtail
               spec:
-                serviceAccountName: promtail-sa
+                service_account_name: promtail-sa
                 securityContext:
                   runAsUser: 0
                   runAsGroup: 0
@@ -115,8 +114,8 @@
                     mountPath: /etc/promtail
                 volumes:
                 - name: pods-logs
-                  hostPath:
+                  host_path:
                     path: /var/log/pods
                 - name: config
-                  configMap:
+                  config_map:
                     name: promtail-config
