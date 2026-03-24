@@ -33,9 +33,10 @@
                       target_label: pod
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
-                    - replacement: /var/log/pods/*$1/*.log
+                    # Estratégia de SRE: Usar o symlink do container
+                    - replacement: /var/log/containers/*$1*.log
                       separator: /
-                      source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      source_labels: [__meta_kubernetes_pod_name]
                       target_label: __path__
 
     - name: Deploy do Promtail (DaemonSet)
@@ -56,26 +57,37 @@
               metadata:
                 labels:
                   name: promtail
-              spec:
-                serviceAccountName: promtail-sa
-                containers:
-                - name: promtail
-                  image: grafana/promtail:2.9.4
-                  args:
-                  - -config.file=/etc/promtail/promtail.yaml
-                  volumeMounts:
-                  - name: logs
-                    mountPath: /var/log/pods
-                    readOnly: true
-                  - name: config
-                    mountPath: /etc/promtail
-                volumes:
-                - name: logs
-                  hostPath:
-                    path: /var/log/pods
+            spec:
+              serviceAccountName: promtail-sa
+              securityContext:
+                runAsUser: 0
+                runAsGroup: 0
+              containers:
+              - name: promtail
+                image: grafana/promtail:2.9.4
+                args:
+                - -config.file=/etc/promtail/promtail.yaml
+                securityContext:
+                  privileged: true # Para garantir acesso aos logs do host
+                volumeMounts:
+                - name: pods-logs
+                  mountPath: /var/log/pods
+                  readOnly: true
+                - name: containers-logs
+                  mountPath: /var/log/containers
+                  readOnly: true
                 - name: config
-                  configMap:
-                    name: promtail-config
+                  mountPath: /etc/promtail
+              volumes:
+              - name: pods-logs
+                hostPath:
+                  path: /var/log/pods
+              - name: containers-logs
+                hostPath:
+                  path: /var/log/containers
+              - name: config
+                configMap:
+                  name: promtail-config
 
     - name: RBAC para o Promtail (ServiceAccount e ClusterRole)
       kubernetes.core.k8s:
