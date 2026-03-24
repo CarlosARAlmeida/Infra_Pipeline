@@ -2,38 +2,7 @@
   hosts: k8s_master
   become: true
   tasks:
-    - name: RBAC para o Promtail
-      kubernetes.core.k8s:
-        kubeconfig: /etc/rancher/k3s/k3s.yaml
-        state: present
-        definition:
-          - apiVersion: v1
-            kind: ServiceAccount
-            metadata:
-              name: promtail-sa
-              namespace: crud-lab
-          - apiVersion: rbac.authorization.k8s.io/v1
-            kind: ClusterRole
-            metadata:
-              name: promtail-clusterrole
-            rules:
-            - apiGroups: [""]
-              resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
-              verbs: ["get", "list", "watch"]
-          - apiVersion: rbac.authorization.k8s.io/v1
-            kind: ClusterRoleBinding
-            metadata:
-              name: promtail-clusterrolebinding
-            subjects:
-            - kind: ServiceAccount
-              name: promtail-sa
-              namespace: crud-lab
-            roleRef:
-              kind: ClusterRole
-              name: promtail-clusterrole
-              apiGroup: rbac.authorization.k8s.io
-
-    - name: Criar ConfigMap do Promtail (Mapa de Logs K3s)
+    - name: Criar ConfigMap do Promtail (Ajuste Final de Regex)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -47,7 +16,6 @@
             promtail.yaml: |
               server:
                 http_listen_port: 9080
-                grpc_listen_port: 0
 
               clients:
                 - url: http://172.22.0.87:3100/loki/api/v1/push
@@ -57,12 +25,7 @@
                   kubernetes_sd_configs:
                     - role: pod
                   relabel_configs:
-                    # 1. Filtra para pegar apenas o seu namespace
-                    - source_labels: [__meta_kubernetes_namespace]
-                      action: keep
-                      regex: crud-lab
-
-                    # 2. Cria labels limpas para o Grafana
+                    # 1. Labels de Identificação no Grafana
                     - source_labels: [__meta_kubernetes_namespace]
                       target_label: namespace
                     - source_labels: [__meta_kubernetes_pod_name]
@@ -70,16 +33,24 @@
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
 
-                    # 3. O CAMINHO REAL (K3s/Debian)
-                    # Monta: /var/log/pods/namespace_podname_uid/container/*.log
-                    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-                      separator: _
+                    # 2. O MAPA DEFINITIVO (Usando Globbing Simples)
+                    # Usamos o UID para localizar a pasta, não importa o prefixo.
+                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      separator: /
                       action: replace
+                      # O regex abaixo captura o UID (1) e o Container (2)
+                      regex: (.+)/(.+)
+                      replacement: /var/log/pods/*$1/$2/*.log
                       target_label: __path__
-                      regex: (.+)_(.+)_(.+)_(.+)
-                      replacement: /var/log/pods/${1}_${2}_${3}/${4}/*.log
 
-    - name: Deploy do Promtail (DaemonSet)
+                    # 3. DEBUG: Cria uma label visível no targets para conferirmos o path
+                    - source_labels: [__path__]
+                      target_label: debug_path
+
+                    # 4. Filtro de Segurança (Removido o 'keep' para restaurar a visão total)
+                    # Uma vez que o 'ready' estiver positivo, voltamos a filtrar o namespace.
+
+    - name: Deploy do Promtail (DaemonSet Corrigido)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
