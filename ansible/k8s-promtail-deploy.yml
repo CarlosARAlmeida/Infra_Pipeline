@@ -2,7 +2,7 @@
   hosts: k8s_master
   become: true
   tasks:
-    - name: RBAC para o Promtail (Garantir permissões)
+    - name: RBAC para o Promtail
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -33,7 +33,7 @@
               name: promtail-clusterrole
               apiGroup: rbac.authorization.k8s.io
 
-    - name: Criar ConfigMap do Promtail (Ajuste de Nó + Path)
+    - name: Criar ConfigMap do Promtail (Mapa de Logs K3s)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -57,12 +57,12 @@
                   kubernetes_sd_configs:
                     - role: pod
                   relabel_configs:
-                    # 1. SÓ OLHA O PRÓPRIO NÓ: Evita que o Master tente ler o Worker
-                    - source_labels: [__meta_kubernetes_pod_node_name]
+                    # 1. Filtra para pegar apenas o seu namespace
+                    - source_labels: [__meta_kubernetes_namespace]
                       action: keep
-                      regex: ${HOSTNAME}
+                      regex: crud-lab
 
-                    # 2. Labels para o Grafana
+                    # 2. Cria labels limpas para o Grafana
                     - source_labels: [__meta_kubernetes_namespace]
                       target_label: namespace
                     - source_labels: [__meta_kubernetes_pod_name]
@@ -70,17 +70,16 @@
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
 
-                    # 3. CONSTRUÇÃO DO PATH (Bate com o seu 'ls -lh')
-                    # Formato K3s: /var/log/pods/namespace_podname_uid/container/*.log
+                    # 3. O CAMINHO REAL (K3s/Debian)
+                    # Monta: /var/log/pods/namespace_podname_uid/container/*.log
                     - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
                       separator: _
                       action: replace
                       target_label: __path__
-                      # O regex abaixo captura: namespace(1)_pod(2)_uid(3) / container(4)
                       regex: (.+)_(.+)_(.+)_(.+)
                       replacement: /var/log/pods/${1}_${2}_${3}/${4}/*.log
 
-    - name: Deploy do Promtail (DaemonSet como Root)
+    - name: Deploy do Promtail (DaemonSet)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -99,7 +98,7 @@
                 labels:
                   name: promtail
               spec:
-                service_account_name: promtail-sa
+                serviceAccountName: promtail-sa
                 securityContext:
                   runAsUser: 0
                   runAsGroup: 0
@@ -118,8 +117,8 @@
                     mountPath: /etc/promtail
                 volumes:
                 - name: pods-logs
-                  host_path:
+                  hostPath:
                     path: /var/log/pods
                 - name: config
-                  config_map:
+                  configMap:
                     name: promtail-config
