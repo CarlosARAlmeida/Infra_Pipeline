@@ -2,7 +2,7 @@
   hosts: k8s_master
   become: true
   tasks:
-    - name: RBAC para o Promtail (Permissões de Leitura)
+    - name: RBAC para o Promtail (Identidade e Permissões)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -33,7 +33,7 @@
               name: promtail-clusterrole
               apiGroup: rbac.authorization.k8s.io
 
-    - name: Criar ConfigMap do Promtail (Caminho K3s Exato)
+    - name: Criar ConfigMap do Promtail (Estratégia de Globbing)
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
@@ -57,27 +57,24 @@
                   kubernetes_sd_configs:
                     - role: pod
                   relabel_configs:
-                    # 1. Labels de Identificação
+                    # 1. Filtra apenas o seu namespace de estudo
                     - source_labels: [__meta_kubernetes_namespace]
-                      target_label: namespace
+                      action: keep
+                      regex: crud-lab
+
+                    # 2. Labels básicas para indexação no Loki
                     - source_labels: [__meta_kubernetes_pod_name]
                       target_label: pod
                     - source_labels: [__meta_kubernetes_container_name]
                       target_label: container
 
-                    # 2. O SEGREDO: Construindo o caminho namespace_podname_uid
-                    # Usamos um separador que não existe nos nomes (;) para não confundir o regex
-                    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-                      separator: ;
+                    # 3. O PULO DO GATO: Mapeamento via UID + Globbing
+                    # Usamos o asterisco para ignorar o prefixo 'namespace_podname_'
+                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      separator: /
                       action: replace
-                      regex: ([^;]+);([^;]+);([^;]+);([^;]+)
-                      replacement: /var/log/pods/${1}_${2}_${3}/${4}/*.log
+                      replacement: /var/log/pods/*$1/$2/*.log
                       target_label: __path__
-
-                    # 3. Filtro de Namespace (Opcional, mas recomendado para o seu Lab)
-                    - source_labels: [namespace]
-                      action: keep
-                      regex: crud-lab
 
     - name: Deploy do Promtail (DaemonSet como Root)
       kubernetes.core.k8s:
@@ -107,11 +104,6 @@
                   image: grafana/promtail:2.9.4
                   args:
                   - -config.file=/etc/promtail/promtail.yaml
-                  env: 
-                    - name: HOSTNAME
-                      valueFrom:
-                        fieldRef:
-                          fieldPath: spec.nodeName
                   securityContext:
                     privileged: true
                   volumeMounts:
