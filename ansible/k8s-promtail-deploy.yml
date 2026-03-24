@@ -14,10 +14,6 @@
             namespace: crud-lab
           data:
             promtail.yaml: |
-              server:
-                http_listen_port: 9080
-                grpc_listen_port: 0
-
               clients:
                 - url: http://172.22.0.87:3100/loki/api/v1/push
 
@@ -26,19 +22,12 @@
                   kubernetes_sd_configs:
                     - role: pod
                   relabel_configs:
-                    # 1. Trazemos labels básicas para o Loki
-                    - source_labels: [__meta_kubernetes_namespace]
-                      target_label: namespace
+                    # Removemos o "keep" para ele enxergar TODOS os pods do cluster
                     - source_labels: [__meta_kubernetes_pod_name]
                       target_label: pod
-                    - source_labels: [__meta_kubernetes_container_name]
-                      target_label: container
-
-                    # 2. O MAPA DO TESOURO: Onde estão os logs físicos?
-                    # No K3s/Debian, este é o padrão mais seguro:
-                    - replacement: /var/log/pods/*$1/*.log
+                    - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+                      replacement: /var/log/pods/*$1/*.log
                       separator: /
-                      source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
                       target_label: __path__
 
     - name: Deploy do Promtail (DaemonSet)
