@@ -6,4 +6,6 @@
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
-        src: ../kubernetes/app-python-lab.yml # Caminho relativo ao diretório ansible/
+        # O Pulo do Gato: 'lookup' lê o arquivo no GitHub Runner
+        # e o 'from_yaml_all' garante que o K8s entenda os 3 recursos (ConfigMap, Deploy, Svc)
+        definition: "{{ lookup('file', '../kubernetes/app-python-lab.yml') | from_yaml_all | list }}"
