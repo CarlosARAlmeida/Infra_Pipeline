@@ -1,0 +1,9 @@
+- name: Deploy da App Python Lab (Injeção via ConfigMap)
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Aplicar manifesto da App Python
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        state: present
+        src: ../kubernetes/app-python-lab.yml # Caminho relativo ao diretório ansible/
