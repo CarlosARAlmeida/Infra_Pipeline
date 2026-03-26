@@ -7,36 +7,31 @@ data:
   app.py: |
     import logging, time
     from flask import Flask
-    # Importando o OpenTelemetry
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-    from opentelemetry.sdk.resources import RESOURCE_ATTRIBUTES, Resource
+    from opentelemetry.sdk.resources import Resource # Simplificado aqui
 
-    # 1. Configurando o Tracing (Apontando para o seu jaeger-svc na porta 4318/HTTP)
-    resource = Resource(attributes={RESOURCE_ATTRIBUTES["service.name"]: "app-python-carlos"})
+    # 1. Configurando o Tracing (Sem depender da constante que mudou de versão)
+    resource = Resource(attributes={"service.name": "app-python-carlos"})
     provider = TracerProvider(resource=resource)
     
-    # Usamos o endpoint HTTP/OTLP que é mais estável para labs
     otlp_exporter = OTLPSpanExporter(endpoint="http://jaeger-svc.crud-lab:4318/v1/traces")
     
     provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
     trace.set_tracer_provider(provider)
     tracer = trace.get_tracer(__name__)
 
-    # 2. Configurando o Log para o Loki
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
     logger = logging.getLogger(__name__)
-
     app = Flask(__name__)
 
     @app.route('/')
     def hello():
-        # Criando um SPAN (isso vai aparecer como uma barra no gráfico do Jaeger)
         with tracer.start_as_current_span("requisicao-carlos-home"):
-            logger.info("Carlos, gerando Log e Trace simultaneamente!")
-            return "Lab Python: LOGS + TRACES Ativos! 🚀"
+            logger.info("Carlos, agora com OTEL 1.40 funcionando!")
+            return "Lab Python: Instrumentação Corrigida! 🚀"
 
     if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5000)
@@ -63,8 +58,12 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            # Instalando as dependências necessárias para o tracing
-            pip install flask opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp
+            # Adicionando a biblioteca de convenções semânticas por garantia
+            pip install flask \
+                        opentelemetry-api \
+                        opentelemetry-sdk \
+                        opentelemetry-exporter-otlp \
+                        opentelemetry-semantic-conventions
             python /app/app.py
         resources:
           requests:
