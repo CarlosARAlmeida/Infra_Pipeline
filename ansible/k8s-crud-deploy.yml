@@ -90,7 +90,7 @@
                     value: "always_on" # Garante que 100% das requisições gerem traces
                   # 2. Ajuste do Tracing: Essencial para o Jaeger no .87
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                    value: "http://jaeger-svc.crud-lab:4317" # <--- Use HTTP, não HTTPS
+                    value: "jaeger-svc.crud-lab:4317" # <--- Use HTTP, não HTTPS
                   - name: OTEL_EXPORTER_OTLP_INSECURE
                     value: "true" # <--- Força o modo sem TLS
                   - name: OTEL_EXPORTER_OTLP_PROTOCOL
