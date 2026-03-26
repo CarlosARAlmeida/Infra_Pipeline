@@ -93,3 +93,4 @@
                 - name: config
                   configMap:
                     name: promtail-config
+                    
