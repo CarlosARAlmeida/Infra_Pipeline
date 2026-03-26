@@ -141,7 +141,7 @@ jobs:
           
           # Rodando o deploy da aplicação
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/k8s-app-python-deploy.yml \
+                           kubernetes/k8s-app-python-deploy.yml \
                            --private-key private_key.pem
 
       - name: Instalar Jaeger Tracing 
