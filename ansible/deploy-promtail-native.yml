@@ -25,7 +25,9 @@
         path: /etc/promtail
         state: directory
 
-    - name: Injetar Configuração (Lógica de Labels via Path)
+    # ... (Partes iniciais de download e extração iguais) ...
+
+    - name: Injetar Configuração Simplificada (Logs via Path)
       copy:
         dest: /etc/promtail/config.yml
         content: |
@@ -36,7 +38,7 @@
             - url: http://172.22.0.87:3100/loki/api/v1/push
 
           scrape_configs:
-            - job_name: kubernetes-logs-direto
+            - job_name: kubernetes-logs
               static_configs:
                 - targets: [localhost]
                   labels:
@@ -52,13 +54,7 @@
                     pod_name:
                     container_name:
 
-            # Job 2: Corrigido e fora do pipeline_stages do Job 1
-            - job_name: kubernetes-pods
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - action: labelmap
-                  regex: __meta_kubernetes_pod_label_(.+)
+# ... (Partes de Systemd e restart iguais) ...
 
     - name: Criar Unidade de Serviço Systemd
       copy:

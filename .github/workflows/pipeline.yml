@@ -185,3 +185,24 @@ jobs:
           ansible-playbook -i ansible/inventory.ini \
                            ansible/k8s-observability-stack.yml \
                            --private-key private_key.pem 
+
+      - name: 🛡️ Health Check de Infraestrutura e Apps
+        if: github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          echo "--- 1. Checando Serviços Systemd (K3s e Promtail) ---"
+          ansible all -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
+                  -m shell -a "systemctl is-active k3s promtail"
+
+          echo "--- 2. Checando Status dos Pods (Namespace crud-lab) ---"
+          ansible k8s_master -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
+                  -m shell -a "sudo kubectl get pods -n crud-lab"
+
+          echo "--- 3. Testando Acessibilidade da App (HTTP 200) ---"
+          curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://172.22.0.29:30500 | grep 200
