@@ -2,10 +2,10 @@
   hosts: all
   become: true
   tasks:
-    - name: Baixar binário do Promtail via Curl (Contorno do bug de HTTPS)
+    - name: Baixar binário do Promtail via Curl
       command: "curl -L https://github.com/grafana/loki/releases/download/v2.9.4/promtail-linux-amd64.zip -o /tmp/promtail.zip"
       args:
-        creates: /tmp/promtail.zip # Só baixa se o arquivo não existir
+        creates: /tmp/promtail.zip
 
     - name: Instalar unzip se necessário
       apt:
@@ -52,11 +52,11 @@
                     pod_name:
                     container_name:
 
-                - job_name: kubernetes-pods
-                  kubernetes_sd_configs:
+            # Job 2: Corrigido e fora do pipeline_stages do Job 1
+            - job_name: kubernetes-pods
+              kubernetes_sd_configs:
                 - role: pod
-                  relabel_configs:
-                # Este é o comando que "traduz" as labels do K8s para o Loki
+              relabel_configs:
                 - action: labelmap
                   regex: __meta_kubernetes_pod_label_(.+)
 
