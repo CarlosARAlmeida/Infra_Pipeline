@@ -41,8 +41,11 @@ data:
 
     @app.route('/')
     def hello():
-        logger.info("Acesso à Home!")
-        return "Lab Python: On! Tente acessar /db para testar o banco. 🚀"
+        with tracer.start_as_current_span("acesso-home") as span:
+            # Pega o ID mesmo sem banco de dados
+            trace_id = format(span.get_span_context().trace_id, "032x")
+            logger.info(f"Acesso à Home! | traceID={trace_id}")
+            return "Lab Python: On! Tente acessar /db para testar o banco. 🚀"
 
     @app.route('/db')
     def test_db():
