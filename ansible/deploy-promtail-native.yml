@@ -52,6 +52,14 @@
                     pod_name:
                     container_name:
 
+                - job_name: kubernetes-pods
+                  kubernetes_sd_configs:
+                - role: pod
+                  relabel_configs:
+                # Este é o comando que "traduz" as labels do K8s para o Loki
+                - action: labelmap
+                  regex: __meta_kubernetes_pod_label_(.+)
+
     - name: Criar Unidade de Serviço Systemd
       copy:
         dest: /etc/systemd/system/promtail.service
