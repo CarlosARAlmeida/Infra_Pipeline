@@ -39,3 +39,10 @@
             service:
               type: NodePort
               nodePort: 32000
+            persistence:
+              enabled: true
+              type: pvc
+              storageClassName: local-path # Storage padrão do K3s
+              accessModes:
+                - ReadWriteOnce
+              size: 5Gi  
