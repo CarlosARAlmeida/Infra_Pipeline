@@ -5,33 +5,64 @@ metadata:
   namespace: crud-lab
 data:
   app.py: |
-    import logging, time
+    import logging, time, os, psycopg2
     from flask import Flask
+    # OpenTelemetry Base
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-    from opentelemetry.sdk.resources import Resource # Simplificado aqui
+    from opentelemetry.sdk.resources import Resource
+    # Instrumentação Automática
+    from opentelemetry.instrumentation.flask import FlaskInstrumentor
+    from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
 
-    # 1. Configurando o Tracing (Sem depender da constante que mudou de versão)
+    # 1. Configurando o Tracing
     resource = Resource(attributes={"service.name": "app-python-carlos"})
     provider = TracerProvider(resource=resource)
-    
     otlp_exporter = OTLPSpanExporter(endpoint="http://jaeger-svc.crud-lab:4318/v1/traces")
-    
     provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
     trace.set_tracer_provider(provider)
     tracer = trace.get_tracer(__name__)
 
+    # 2. Ativando Instrumentação Automática (O segredo do SRE)
+    app = Flask(__name__)
+    FlaskInstrumentor().instrument_app(app)
+    Psycopg2Instrumentor().instrument() # Todas as conexões Postgres serão rastreadas agora!
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
     logger = logging.getLogger(__name__)
-    app = Flask(__name__)
+
+    # Configuração do Banco (Service Name do K8s)
+    DB_HOST = "postgres-svc.crud-lab"
+    DB_NAME = "observability_db"
+    DB_USER = "carlos"
+    DB_PASS = "lab123"
 
     @app.route('/')
     def hello():
-        with tracer.start_as_current_span("requisicao-carlos-home"):
-            logger.info("Carlos, agora com OTEL 1.40 funcionando!")
-            return "Lab Python: Instrumentação Corrigida! 🚀"
+        logger.info("Acesso à Home!")
+        return "Lab Python: On! Tente acessar /db para testar o banco. 🚀"
+
+    @app.route('/db')
+    def test_db():
+        with tracer.start_as_current_span("operacao-banco-de-dados"):
+            try:
+                conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
+                cur = conn.cursor()
+                
+                # Criando uma tabela de teste se não existir
+                cur.execute("CREATE TABLE IF NOT EXISTS acessos (id serial PRIMARY KEY, data timestamp);")
+                cur.execute("INSERT INTO acessos (data) VALUES (now());")
+                conn.commit()
+                
+                cur.close()
+                conn.close()
+                logger.info("Registro inserido no Postgres com sucesso!")
+                return "Banco de Dados acessado! Trace enviado ao Jaeger. 📊"
+            except Exception as e:
+                logger.error(f"Erro ao acessar o banco: {e}")
+                return f"Erro no banco: {e}", 500
 
     if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5000)
@@ -58,12 +89,14 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            # Adicionando a biblioteca de convenções semânticas por garantia
+            # Instalando as libs de banco e instrumentação
             pip install flask \
+                        psycopg2-binary \
                         opentelemetry-api \
                         opentelemetry-sdk \
                         opentelemetry-exporter-otlp \
-                        opentelemetry-semantic-conventions
+                        opentelemetry-instrumentation-flask \
+                        opentelemetry-instrumentation-psycopg2
             python /app/app.py
         resources:
           requests:

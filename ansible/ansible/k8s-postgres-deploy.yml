@@ -1,0 +1,9 @@
+- name: Deploy do PostgreSQL (Banco do Lab)
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Aplicar manifesto do Postgres
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        state: present
+        definition: "{{ lookup('file', '../kubernetes/postgres-lab.yml') | from_yaml_all | list }}"
