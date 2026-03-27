@@ -69,6 +69,25 @@ data:
                 logger.error(f"Erro no banco | traceID={trace_id} | erro={e}")
                 return "Erro no banco", 500
 
+    from opentelemetry.trace import Status, StatusCode
+
+    @app.errorhandler(404)
+    def page_not_found(e):
+        # 1. Pegamos o Span atual criado pela instrumentação automática
+        current_span = trace.get_current_span()
+        
+        # 2. Marcamos o Span como Erro no Jaeger (Fica Vermelho!)
+        current_span.set_status(Status(StatusCode.ERROR))
+        current_span.set_attribute("http.status_code", 404)
+        current_span.set_attribute("error", True)
+        
+        trace_id = format(current_span.get_span_context().trace_id, "032x")
+        
+        # 3. Logamos como ERROR no Loki
+        logger.error(f"Página não encontrada: 404 | path={request.path} | traceID={trace_id}")
+        
+        return "Ops! Essa rota não existe no lab do Carlos. 404", 404
+
     if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5000)
 
