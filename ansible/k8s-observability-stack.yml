@@ -46,3 +46,21 @@
               accessModes:
                 - ReadWriteOnce
               size: 5Gi  
+            # --- CONFIGURAÇÃO AUTOMÁTICA DE DATA SOURCES ---
+            additionalDataSources:
+              - name: Loki
+                type: loki
+                url: http://172.22.0.87:3100 # Seu IP externo do Loki
+                jsonData:
+                  derivedFields:
+                    - datasourceUid: jaeger-datasource-id
+                      matcherRegex: "traceID=(\\w+)"
+                      name: TraceID
+                      url: "$${__value.raw}" # O duplo $$ é para o Ansible não confundir com variável
+              - name: Jaeger
+                type: jaeger
+                uid: jaeger-datasource-id
+                url: http://jaeger-svc.crud-lab:16686
+                jsonData:
+                  nodeGraph:
+                    enabled: true  
