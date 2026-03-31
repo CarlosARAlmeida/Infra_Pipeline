@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: app-python-monitor
+  namespace: observability  # Onde o Prometheus mora
+  labels:
+    release: prometheus-stack # <--- O "segredo": deve ser igual ao nome do seu Helm
+spec:
+  selector:
+    matchLabels:
+      app: app-python-carlos # <--- Bate com a label que colocamos no seu Service
+  namespaceSelector:
+    matchNames:
+      - crud-lab             # Onde a sua App mora
+  endpoints:
+  - port: metrics            # Nome da porta que definimos no Service (8000)
+    interval: 15s
+    path: /metrics
