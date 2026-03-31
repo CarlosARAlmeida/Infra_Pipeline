@@ -6,13 +6,20 @@ metadata:
 data:
   app.py: |
     import logging, time, os, psycopg2
-    from flask import Flask
-    # OpenTelemetry Base
-    from opentelemetry import trace
+    from flask import Flask, request # Importado 'request' para o 404 funcionar
+    
+    # OpenTelemetry Base e Tracing
+    from opentelemetry import trace, metrics
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.resources import Resource
+    
+    # OpenTelemetry Metrics (O segredo para o Prometheus)
+    from opentelemetry.exporter.prometheus import PrometheusMetricReader
+    from opentelemetry.sdk.metrics import MeterProvider
+    from prometheus_client import start_http_server
+
     # Instrumentação Automática
     from opentelemetry.instrumentation.flask import FlaskInstrumentor
     from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
@@ -25,15 +32,20 @@ data:
     trace.set_tracer_provider(provider)
     tracer = trace.get_tracer(__name__)
 
-    # 2. Ativando Instrumentação Automática (O segredo do SRE)
+    # 2. Configurando Métricas (Expondo na porta 8000)
+    start_http_server(port=8000, addr="0.0.0.0")
+    reader = PrometheusMetricReader()
+    meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+    metrics.set_meter_provider(meter_provider)
+
+    # 3. Ativando Instrumentação
     app = Flask(__name__)
     FlaskInstrumentor().instrument_app(app)
-    Psycopg2Instrumentor().instrument() # Todas as conexões Postgres serão rastreadas agora!
+    Psycopg2Instrumentor().instrument()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
     logger = logging.getLogger(__name__)
 
-    # Configuração do Banco (Service Name do K8s)
     DB_HOST = "postgres-svc.crud-lab"
     DB_NAME = "observability_db"
     DB_USER = "carlos"
@@ -42,7 +54,6 @@ data:
     @app.route('/')
     def hello():
         with tracer.start_as_current_span("acesso-home") as span:
-            # Pega o ID mesmo sem banco de dados
             trace_id = format(span.get_span_context().trace_id, "032x")
             logger.info(f"Acesso à Home! | traceID={trace_id}")
             return "Lab Python: On! Tente acessar /db para testar o banco. 🚀"
@@ -50,9 +61,7 @@ data:
     @app.route('/db')
     def test_db():
         with tracer.start_as_current_span("operacao-banco-de-dados") as span:
-            # Pega o ID do Trace atual
             trace_id = format(span.get_span_context().trace_id, "032x")
-            
             try:
                 conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
                 cur = conn.cursor()
@@ -61,8 +70,6 @@ data:
                 conn.commit()
                 cur.close()
                 conn.close()
-                
-                # O Pulo do Gato: Logamos o TraceID explicitamente
                 logger.info(f"Registro no Postgres OK | traceID={trace_id}")
                 return f"Banco acessado! Trace: {trace_id}"
             except Exception as e:
@@ -73,19 +80,14 @@ data:
 
     @app.errorhandler(404)
     def page_not_found(e):
-        # 1. Pegamos o Span atual criado pela instrumentação automática
         current_span = trace.get_current_span()
-        
-        # 2. Marcamos o Span como Erro no Jaeger (Fica Vermelho!)
         current_span.set_status(Status(StatusCode.ERROR))
         current_span.set_attribute("http.status_code", 404)
         current_span.set_attribute("error", True)
-        
         trace_id = format(current_span.get_span_context().trace_id, "032x")
         
-        # 3. Logamos como ERROR no Loki
+        # Agora o request.path vai funcionar
         logger.error(f"Página não encontrada: 404 | path={request.path} | traceID={trace_id}")
-        
         return "Ops! Essa rota não existe no lab do Carlos. 404", 404
 
     if __name__ == '__main__':
@@ -113,24 +115,20 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            # Instalando as libs de banco e instrumentação
             pip install flask \
                         psycopg2-binary \
                         opentelemetry-api \
                         opentelemetry-sdk \
                         opentelemetry-exporter-otlp \
                         opentelemetry-instrumentation-flask \
-                        opentelemetry-instrumentation-psycopg2
+                        opentelemetry-instrumentation-psycopg2 \
+                        opentelemetry-exporter-prometheus # <--- Nova lib de métricas
             python /app/app.py
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
         ports:
         - containerPort: 5000
+          name: http
+        - containerPort: 8000 # <--- Porta de métricas exposta no container
+          name: metrics
         volumeMounts:
         - name: code-volume
           mountPath: /app/app.py
@@ -146,11 +144,17 @@ kind: Service
 metadata:
   name: app-python-svc
   namespace: crud-lab
+  labels:
+    app: app-python-carlos # Label para o ServiceMonitor encontrar
 spec:
   type: NodePort
   selector:
     app: app-python-carlos
   ports:
-  - port: 80
+  - name: http
+    port: 80
     targetPort: 5000
     nodePort: 30500
+  - name: metrics # <--- Porta de métricas no Service
+    port: 8000
+    targetPort: 8000
