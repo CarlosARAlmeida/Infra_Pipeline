@@ -1,0 +1,11 @@
+- name: Deploy do Frontend da aplicação Web
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Aplicar manifesto do Frontend
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        state: present
+        # O Pulo do Gato: 'lookup' lê o arquivo no GitHub Runner
+        # e o 'from_yaml_all' garante que o K8s entenda os 3 recursos (ConfigMap, Deploy, Svc)
+        definition: "{{ lookup('file', '../kubernetes/web-frontend.yml') | from_yaml_all | list }}"
