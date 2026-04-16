@@ -25,6 +25,8 @@ spec:
       io.kompose.service: frontend
   template:
     metadata:
+      labels:                    
+        io.kompose.service: frontend
     spec:
       containers:
         - image: ghcr.io/carlosaralmeida/shop-ui:v1
