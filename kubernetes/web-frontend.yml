@@ -1,31 +1,21 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kompose.cmd: kompose convert
-    kompose.version: 1.38.0 (a8f5d1cbd)
-  labels:
-    io.kompose.service: frontend
   name: frontend
+  namespace: shop-lab
 spec:
   ports:
     - name: "80"
       port: 80
       targetPort: 80
-  selector:
-    io.kompose.service: frontend
 
 ---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert
-    kompose.version: 1.38.0 (a8f5d1cbd)
-  labels:
-    io.kompose.service: frontend
   name: frontend
+  namespace: shop-lab
 spec:
   replicas: 1
   selector:
@@ -33,11 +23,6 @@ spec:
       io.kompose.service: frontend
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert
-        kompose.version: 1.38.0 (a8f5d1cbd)
-      labels:
-        io.kompose.service: frontend
     spec:
       containers:
         - image: ghcr.io/carlosaralmeida/shop-ui:v1
@@ -45,4 +30,11 @@ spec:
           ports:
             - containerPort: 80
               protocol: TCP
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
       restartPolicy: Always

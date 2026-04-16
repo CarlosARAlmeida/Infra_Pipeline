@@ -28,9 +28,8 @@ kind: ConfigMap
 metadata:
   annotations:
     use-subpath: "true"
-  labels:
-    io.kompose.service: db
   name: db-cm0
+  namespace: shop-lab
 
 ---
 
@@ -38,31 +37,21 @@ metadata:
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kompose.cmd: kompose convert
-    kompose.version: 1.38.0 (a8f5d1cbd)
-  labels:
-    io.kompose.service: db
   name: db
+  namespace: shop-lab
 spec:
   ports:
     - name: "5432"
       port: 5432
       targetPort: 5432
-  selector:
-    io.kompose.service: db
 
 ---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert
-    kompose.version: 1.38.0 (a8f5d1cbd)
-  labels:
-    io.kompose.service: db
   name: db
+  namespace: shop-lab
 spec:
   replicas: 1
   selector:
@@ -72,11 +61,6 @@ spec:
     type: Recreate
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert
-        kompose.version: 1.38.0 (a8f5d1cbd)
-      labels:
-        io.kompose.service: db
     spec:
       containers:
         - env:
@@ -91,6 +75,13 @@ spec:
           ports:
             - containerPort: 5432
               protocol: TCP
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d/init.sql
               name: db-cm0
