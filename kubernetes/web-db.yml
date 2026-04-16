@@ -61,6 +61,8 @@ spec:
     type: Recreate
   template:
     metadata:
+      labels:
+        io.kompose.service: db
     spec:
       containers:
         - env:

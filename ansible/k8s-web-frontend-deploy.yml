@@ -1,13 +1,13 @@
-- name: Garantir que o Namespace existe
-  kubernetes.core.k8s:
-    name: shop-lab
-    kind: Namespace
-    state: present
-
 - name: Deploy do Frontend da aplicação Web
   hosts: k8s_master
   become: true
   tasks:
+    - name: Garantir que o Namespace existe
+      kubernetes.core.k8s:
+        name: shop-lab
+        kind: Namespace
+        state: present
+
     - name: Aplicar manifesto do Frontend
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
