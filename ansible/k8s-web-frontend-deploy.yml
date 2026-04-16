@@ -5,6 +5,7 @@
   tasks:
     - name: Garantir que o Namespace existe
       kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
         name: shop-lab
         kind: Namespace
         state: present
