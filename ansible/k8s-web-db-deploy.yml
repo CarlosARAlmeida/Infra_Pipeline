@@ -17,3 +17,4 @@
         # O lookup lê o arquivo no Runner e envia para o Master
         definition: "{{ lookup('file', '../kubernetes/web-db.yml') | from_yaml_all | list }}"
         namespace: shop-lab
+        
