@@ -197,7 +197,7 @@ jobs:
           chmod 600 private_key.pem
         
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/web-db.yml \
+                           ansible/k8s-web-db-deploy.yml \
                            --private-key private_key.pem
 
       - name: Executar Deploy do backend da aplicação Web
@@ -211,7 +211,7 @@ jobs:
           chmod 600 private_key.pem
         
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/web-backend.yml \
+                           ansible/k8s-web-backend-deploy.yml \
                            --private-key private_key.pem
 
       - name: Executar Deploy do Frontend da aplicação Web
@@ -225,7 +225,7 @@ jobs:
           chmod 600 private_key.pem
         
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/web-frontend.yml \
+                           ansible/k8s-web-frontend-deploy.yml \
                            --private-key private_key.pem
 
       - name: 🛡️ Health Check de Infraestrutura e Apps
