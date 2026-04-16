@@ -9,4 +9,4 @@
         # O Pulo do Gato: 'lookup' lê o arquivo no GitHub Runner
         # e o 'from_yaml_all' garante que o K8s entenda os 3 recursos (ConfigMap, Deploy, Svc)
         definition: "{{ lookup('file', '../kubernetes/web-db.yml') | from_yaml_all | list }}"
-        namespace: observability-lab 
+        namespace: shop-lab
