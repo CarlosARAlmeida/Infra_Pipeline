@@ -1,3 +1,9 @@
+- name: Garantir que o Namespace existe
+  kubernetes.core.k8s:
+    name: shop-lab
+    kind: Namespace
+    state: present
+
 - name: Deploy do Banco da aplicação Web
   hosts: k8s_master
   become: true
