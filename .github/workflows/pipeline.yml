@@ -157,7 +157,36 @@ jobs:
                            ansible/k8s-observability-stack.yml \
                            --private-key private_key.pem 
 
-      - name: Executar Deploy do PostgreSQL
+      # - name: Executar Deploy do PostgreSQL
+      #   if: github.ref == 'refs/heads/main'
+      #   working-directory: .
+      #   env:
+      #     ANSIBLE_HOST_KEY_CHECKING: "False"
+      #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+      #   run: |
+      #     echo "$SSH_PRIVATE_KEY" > private_key.pem
+      #     chmod 600 private_key.pem
+          
+      #     ansible-playbook -i ansible/inventory.ini \
+      #                      ansible/k8s-postgres-deploy.yml \
+      #                      --private-key private_key.pem
+
+      # - name: Executar Deploy da Aplicação Python de Teste
+      #   if: github.ref == 'refs/heads/main'
+      #   working-directory: .
+      #   env:
+      #     ANSIBLE_HOST_KEY_CHECKING: "False"
+      #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+      #   run: |
+      #     echo "$SSH_PRIVATE_KEY" > private_key.pem
+      #     chmod 600 private_key.pem
+          
+      #     # Rodando o deploy da aplicação
+      #     ansible-playbook -i ansible/inventory.ini \
+      #                      ansible/k8s-app-python-deploy.yml \
+      #                      --private-key private_key.pem
+
+      - name: Executar Deploy do Banco da aplicação Web
         if: github.ref == 'refs/heads/main'
         working-directory: .
         env:
@@ -166,12 +195,12 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
-          
+        
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/k8s-postgres-deploy.yml \
+                           ansible/web-db.yml \
                            --private-key private_key.pem
 
-      - name: Executar Deploy da Aplicação Python de Teste
+      - name: Executar Deploy do backend da aplicação Web
         if: github.ref == 'refs/heads/main'
         working-directory: .
         env:
@@ -180,10 +209,23 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
-          
-          # Rodando o deploy da aplicação
+        
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/k8s-app-python-deploy.yml \
+                           ansible/web-backend.yml \
+                           --private-key private_key.pem
+
+      - name: Executar Deploy do Frontend da aplicação Web
+        if: github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+        
+          ansible-playbook -i ansible/inventory.ini \
+                           ansible/web-frontend.yml \
                            --private-key private_key.pem
 
       - name: 🛡️ Health Check de Infraestrutura e Apps

@@ -1,0 +1,105 @@
+apiVersion: v1
+data:
+  init.sql: |-
+    -- Criação da tabela de produtos
+    CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100),
+        price DECIMAL(10, 2),
+        stock INTEGER
+    );
+
+    -- Inserção de dados para simular o e-commerce
+    INSERT INTO products (name, price, stock) VALUES
+    ('Monitor Gamer 24"', 1200.00, 15),
+    ('Teclado Mecânico RGB', 350.00, 30),
+    ('Mouse Óptico 16000 DPI', 250.00, 50),
+    ('Headset 7.1 Surround', 450.00, 20),
+    ('Cadeira Ergonômica', 1800.00, 10);
+
+    -- Tabela de vendas para gerar traces de escrita
+    CREATE TABLE IF NOT EXISTS sales (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER REFERENCES products(id),
+        sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        quantity INTEGER
+    );
+kind: ConfigMap
+metadata:
+  annotations:
+    use-subpath: "true"
+  labels:
+    io.kompose.service: db
+  name: db-cm0
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: db
+  name: db
+spec:
+  ports:
+    - name: "5432"
+      port: 5432
+      targetPort: 5432
+  selector:
+    io.kompose.service: db
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: db
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: db
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: shop_db
+            - name: POSTGRES_PASSWORD
+              value: password
+            - name: POSTGRES_USER
+              value: user
+          image: postgres:15
+          name: shop-db
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /docker-entrypoint-initdb.d/init.sql
+              name: db-cm0
+              subPath: init.sql
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            items:
+              - key: init.sql
+                path: init.sql
+            name: db-cm0
+          name: db-cm0
