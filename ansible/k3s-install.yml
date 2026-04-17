@@ -5,8 +5,6 @@
   tasks:
     - name: Baixar e rodar instalador do K3s no Master
       shell: curl -sfL https://get.k3s.io | sh -s - server --node-ip={{ ansible_host }}
-      args:
-        creates: /usr/local/bin/k3s
 
     - name: Capturar o Node Token do Master
       slurp:
@@ -29,5 +27,3 @@
         K3S_URL=https://{{ master_ip }}:6443 
         K3S_TOKEN={{ hostvars[groups['k8s_master'][0]]['k3s_token'] }} 
         sh -
-      args:
-        creates: /usr/local/bin/k3s-agent
