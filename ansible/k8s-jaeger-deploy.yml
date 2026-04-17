@@ -1,12 +1,20 @@
+- name: Garantir que o namespace observability existe
+  kubernetes.core.k8s:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    name: observability
+    api_version: v1
+    kind: Namespace
+    state: present
+
 - name: Playbook para Deploy do Jaeger no K3s
-  hosts: k8s_master  # <--- Verifique se este nome está igual ao seu inventory.ini
+  hosts: k8s_master  # <--- Verifique se este nome está igual no inventory.ini
   become: true        # Garante privilégios de root para ler o k3s.yaml
   tasks:
     - name: Deploy do Jaeger All-in-One
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
-        namespace: crud-lab
+        namespace: observability
         definition:
           apiVersion: apps/v1
           kind: Deployment
@@ -39,7 +47,7 @@
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         state: present
-        namespace: crud-lab
+        namespace: observability
         definition:
           apiVersion: v1
           kind: Service

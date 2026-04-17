@@ -129,6 +129,20 @@ jobs:
                            ansible/deploy-promtail-native.yml \
                            --private-key private_key.pem
 
+      - name: Criar namaspces pos install 
+        if: github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          ansible-playbook -i ansible/inventory.ini \
+                           ansible/k8s-posinstall.yml \
+                           --private-key private_key.pem        
+                              
       - name: Instalar Jaeger Tracing 
         if: github.ref == 'refs/heads/main'
         working-directory: .
@@ -213,9 +227,13 @@ jobs:
           ansible all -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
                   -m shell -a "systemctl is-active k3s promtail"
 
-          echo "--- 2. Checando Status dos Pods (Namespace crud-lab) ---"
+          echo "--- 2. Checando Status dos Pods (Namespace observability) ---"
           ansible k8s_master -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
-                  -m shell -a "sudo kubectl get pods -n crud-lab"
+                  -m shell -a "sudo kubectl get pods -n observability"
 
-          echo "--- 3. Testando Acessibilidade da App (HTTP 200) ---"
+          echo "--- 3. Checando Status dos Pods (Namespace shop-lab) ---"
+          ansible k8s_master -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
+                  -m shell -a "sudo kubectl get pods -n shop-lab"                  
+
+          echo "--- 4. Testando Acessibilidade da App (HTTP 200) ---"
           curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://172.22.0.29:30500 | grep 200

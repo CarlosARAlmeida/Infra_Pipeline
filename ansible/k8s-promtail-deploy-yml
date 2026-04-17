@@ -11,7 +11,7 @@
           kind: ConfigMap
           metadata:
             name: promtail-config
-            namespace: crud-lab
+            namespace: observability
           data:
             promtail.yaml: |
               server:
@@ -59,7 +59,7 @@
           kind: DaemonSet
           metadata:
             name: promtail
-            namespace: crud-lab
+            namespace: observability
           spec:
             selector:
               matchLabels:

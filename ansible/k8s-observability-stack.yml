@@ -15,7 +15,6 @@
       args:
         creates: /usr/local/bin/helm
 
-    # ... restante do playbook igual ao anterior ...
     - name: Adicionar repositórios Helm (Prometheus e Grafana)
       kubernetes.core.helm_repository:
         name: "{{ item.name }}"
@@ -60,7 +59,7 @@
               - name: Jaeger
                 type: jaeger
                 uid: jaeger-datasource-id
-                url: http://jaeger-svc.crud-lab:16686
+                url: http://jaeger-svc.observability:16686
                 jsonData:
                   nodeGraph:
                     enabled: true  
