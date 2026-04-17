@@ -129,7 +129,7 @@ jobs:
                            ansible/deploy-promtail-native.yml \
                            --private-key private_key.pem
 
-      - name: Criar namaspces pos install 
+      - name: Criar namespaces pos install 
         if: github.ref == 'refs/heads/main'
         working-directory: .
         env:
