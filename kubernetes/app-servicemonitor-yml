@@ -11,7 +11,7 @@ spec:
       app: app-python-carlos
   namespaceSelector:
     matchNames:
-      - crud-lab
+      - observability
   endpoints:
   - port: metrics
     interval: 15s

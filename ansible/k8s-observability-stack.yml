@@ -49,7 +49,7 @@
             additionalDataSources:
               - name: Loki
                 type: loki
-                url: http://172.22.0.87:3100 # Seu IP externo do Loki
+                url: http://172.22.0.29:3100 # Seu IP externo do Loki
                 jsonData:
                   derivedFields:
                     - datasourceUid: jaeger-datasource-id
