@@ -35,6 +35,10 @@
         create_namespace: true
         values:
           grafana:
+            securityContext:
+              runAsUser: 0
+              runAsGroup: 0
+              fsGroup: 0
             spec:
               strategy:
                 type: Recreate # Em vez de RollingUpdate
