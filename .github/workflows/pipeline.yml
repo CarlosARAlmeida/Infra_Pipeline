@@ -140,7 +140,7 @@ jobs:
           chmod 600 private_key.pem
           
           ansible-playbook -i ansible/inventory.ini \
-                           ansible/k8s-posinstall.yml \
+                           ansible/k8s-pos-install.yml \
                            --private-key private_key.pem        
                               
       - name: Instalar Jaeger Tracing 
