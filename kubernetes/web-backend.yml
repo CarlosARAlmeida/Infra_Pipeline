@@ -39,14 +39,16 @@ spec:
             value: "postgres://user:password@db:5432/shop_db"        
             # --- Configurações do OpenTelemetry ---
           - name: OTEL_SERVICE_NAME
-            value: "shop-api-backend"
+            value: "shop-backend"
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
             value: "http://jaeger-svc.observability:4318" # Apontando para o namespace certo!
           - name: OTEL_RESOURCE_ATTRIBUTES
             value: "deployment.environment=lab,service.namespace=shop-lab"
+          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+            value: "http/protobuf"
           - name: NODE_OPTIONS
           value: "--require @opentelemetry/auto-instrumentations-node/register"  
-          image: ghcr.io/carlosaralmeida/shop-api:v1
+          image: ghcr.io/carlosaralmeida/shop-api:v2
           name: shop-api
           ports:
             - containerPort: 3000
