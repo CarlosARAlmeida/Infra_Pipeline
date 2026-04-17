@@ -245,7 +245,7 @@ jobs:
           echo "--- 4. Testando Acessibilidade ---"
           # Adicionado retry para aguardar o pod subir 100%
           for i in {1..10}; do 
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://172.22.0.29:30500)
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://172.22.0.29:30080)
             if [ "$CODE" == "200" ]; then echo "Sucesso: 200"; exit 0; fi
             echo "Tentativa $i: Status $CODE... aguardando."
             sleep 5

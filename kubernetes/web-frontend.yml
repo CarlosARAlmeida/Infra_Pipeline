@@ -32,8 +32,9 @@ spec:
     spec:
       imagePullSecrets:
         - name: regcred # <--- A "chave" para o GHCR
+      imagePullPolicy: Always  
       containers:
-        - image: ghcr.io/carlosaralmeida/shop-ui:v1
+        - image: ghcr.io/carlosaralmeida/shop-ui:v2
           name: shop-ui
           ports:
             - containerPort: 80

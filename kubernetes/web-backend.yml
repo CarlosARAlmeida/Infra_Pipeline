@@ -33,11 +33,19 @@ spec:
         - name: regcred # <--- A "chave" para o GHCR
       containers:
         - env:
-            - name: DATABASE_URL
-              value: postgres://user:password@db:5432/shop_db
-            # Adicione as vars de Tracing para o novo namespace
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://jaeger-svc.observability:4318" 
+          - name: DB_HOST
+            value: "db" # Nome do seu Service de banco no namespace shop-lab
+          - name: DATABASE_URL
+            value: "postgres://user:password@db:5432/shop_db"        
+            # --- Configurações do OpenTelemetry ---
+          - name: OTEL_SERVICE_NAME
+            value: "shop-api-backend"
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: "http://jaeger-svc.observability:4318" # Apontando para o namespace certo!
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: "deployment.environment=lab,service.namespace=shop-lab"
+          - name: NODE_OPTIONS
+          value: "--require @opentelemetry/auto-instrumentations-node/register"  
           image: ghcr.io/carlosaralmeida/shop-api:v1
           name: shop-api
           ports:
