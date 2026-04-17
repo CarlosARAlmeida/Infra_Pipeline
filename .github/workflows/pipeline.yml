@@ -223,17 +223,31 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           
-          echo "--- 1. Checando Serviços Systemd (K3s e Promtail) ---"
+          echo "--- 1. Checando Serviços Systemd ---"
+          # Master roda k3s
+          ansible k8s_master -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
+                  -m shell -a "systemctl is-active k3s"
+          # Workers rodam k3s-agent
+          ansible k8s_workers -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
+                  -m shell -a "systemctl is-active k3s-agent"
+          # Ambos rodam promtail
           ansible all -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
-                  -m shell -a "systemctl is-active k3s promtail"
+                  -m shell -a "systemctl is-active promtail"
 
-          echo "--- 2. Checando Status dos Pods (Namespace observability) ---"
+          echo "--- 2. Status Pods (Observability) ---"
           ansible k8s_master -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
                   -m shell -a "sudo kubectl get pods -n observability"
 
-          echo "--- 3. Checando Status dos Pods (Namespace shop-lab) ---"
+          echo "--- 3. Status Pods (Shop-Lab) ---"
           ansible k8s_master -i ansible/inventory.ini -u ubuntu --private-key private_key.pem \
                   -m shell -a "sudo kubectl get pods -n shop-lab"                  
 
-          echo "--- 4. Testando Acessibilidade da App (HTTP 200) ---"
-          curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://172.22.0.29:30500 | grep 200
+          echo "--- 4. Testando Acessibilidade ---"
+          # Adicionado retry para aguardar o pod subir 100%
+          for i in {1..10}; do 
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://172.22.0.29:30500)
+            if [ "$CODE" == "200" ]; then echo "Sucesso: 200"; exit 0; fi
+            echo "Tentativa $i: Status $CODE... aguardando."
+            sleep 5
+          done
+          exit 1

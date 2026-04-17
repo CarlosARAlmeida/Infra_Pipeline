@@ -10,6 +10,19 @@
         kind: Namespace
         state: present
 
+    - name: Criar Secret para o Registry no shop-lab
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: regcred
+            namespace: shop-lab
+          type: kubernetes.io/dockerconfigjson
+          data:
+            .dockerconfigjson: "{{ lookup('vars', 'gh_token_b64') }}"     
+
     - name: Aplicar manifesto do Frontend
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml

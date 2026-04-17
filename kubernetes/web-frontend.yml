@@ -4,8 +4,9 @@ metadata:
   name: frontend
   namespace: shop-lab
 spec:
+  type: NodePort
   ports:
-    - name: "80"
+    - name: "http"
       port: 80
       targetPort: 80
   selector:
@@ -28,6 +29,8 @@ spec:
       labels:                    
         io.kompose.service: frontend
     spec:
+      imagePullSecrets:
+        - name: regcred # <--- A "chave" para o GHCR
       containers:
         - image: ghcr.io/carlosaralmeida/shop-ui:v1
           name: shop-ui

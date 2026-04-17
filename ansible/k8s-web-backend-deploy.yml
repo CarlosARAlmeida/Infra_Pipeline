@@ -1,5 +1,5 @@
 ---
-- name: Deploy do Backend da aplicação Web
+- name: Deploy da Infraestrutura do backend da Aplicação Web
   hosts: k8s_master
   become: true
   tasks:
@@ -9,6 +9,20 @@
         name: shop-lab
         kind: Namespace
         state: present
+
+    - name: Criar Secret para o Registry no shop-lab
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: regcred
+            namespace: shop-lab
+          type: kubernetes.io/dockerconfigjson
+          data:
+            .dockerconfigjson: "{{ lookup('vars', 'gh_token_b64') }}" 
+
     - name: Aplicar manifesto do Backend
       kubernetes.core.k8s:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
