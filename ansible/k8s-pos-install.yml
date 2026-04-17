@@ -1,10 +1,15 @@
-- name: Preparar o terreno no K3s
-  kubernetes.core.k8s:
-    kubeconfig: /etc/rancher/k3s/k3s.yaml
-    api_version: v1
-    kind: Namespace
-    name: "{{ item }}"
-    state: present
-  loop:
-    - observability      # Para Prometheus, Grafana, Jaeger, Loki
-    - shop-lab    # Para  aplicação web
+---
+- name: Garantir os namespaces observability e shop-lab
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Garantindo os namespaces
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        api_version: v1
+        kind: Namespace
+        name: "{{ item }}"
+        state: present
+      loop:
+        - observability      # Para Prometheus, Grafana, Jaeger, Loki
+        - shop-lab    # Para  aplicação web
