@@ -1,4 +1,3 @@
----
 - name: Deploy do Loki
   hosts: k8s_master
   become: true
@@ -10,14 +9,18 @@
         chart_ref: grafana/loki
         release_namespace: observability
         values:
+          # 1. Modo de operação e desativação de caches (Economia de RAM)
+          deploymentMode: SingleBinary
           chunksCache:
             enabled: false
           resultsCache:
             enabled: false
           memcached:
             enabled: false
-          # 1. Define o modo único
-          deploymentMode: SingleBinary
+          lokiCanary:
+            enabled: false
+          test:
+            enabled: false
 
           loki:
             auth_enabled: false
@@ -39,7 +42,13 @@
                     prefix: index_
                     period: 24h
 
-          # 2. Configura o binário único
+            # --- AQUI ESTÁ A CORREÇÃO: Porta 31100 vinculada ao binário ---
+            service:
+              type: NodePort
+              nodePort: 31100
+              port: 3100 # Porta interna onde o Loki ouve
+
+          # 2. Configuração da instância única (StatefulSet)
           singleBinary:
             replicas: 1
             persistence:
@@ -47,7 +56,7 @@
               size: 5Gi
               storageClass: local-path
 
-          # 3. O FIX: Zerar explicitamente os componentes do modo Scalable
+          # 3. Zera os componentes escaláveis para evitar conflito de réplicas
           read:
             replicas: 0
           write:
@@ -55,17 +64,6 @@
           backend:
             replicas: 0
 
-          # 4. Gateway para acesso via NodePort (Promtail Nativo)
+          # 4. Desativa o Gateway (Nginx) para o tráfego ir direto ao pod loki-0
           gateway:
-            enabled: true
-            replicas: 1
-            deploymentStrategy: Recreate
-            service:
-              type: NodePort
-              nodePort: 31100 # É possivel alterar para a porta padrão Loki se alterar no Kubernetes.
-          
-          lokiCanary:
             enabled: false
-          test:
-            enabled: false
-            
