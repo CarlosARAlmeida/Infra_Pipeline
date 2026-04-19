@@ -9,18 +9,13 @@
         chart_ref: grafana/loki
         release_namespace: observability
         values:
-          # 1. Modo de operação e desativação de caches (Economia de RAM)
+          # 1. Modo Único e Desativação de Caches
           deploymentMode: SingleBinary
-          chunksCache:
-            enabled: false
-          resultsCache:
-            enabled: false
-          memcached:
-            enabled: false
-          lokiCanary:
-            enabled: false
-          test:
-            enabled: false
+          chunksCache: { enabled: false }
+          resultsCache: { enabled: false }
+          memcached: { enabled: false }
+          lokiCanary: { enabled: false }
+          test: { enabled: false }
 
           loki:
             auth_enabled: false
@@ -42,13 +37,13 @@
                     prefix: index_
                     period: 24h
 
-            # --- AQUI ESTÁ A CORREÇÃO: Porta 31100 vinculada ao binário ---
+            # --- CORREÇÃO: O serviço agora é o 'Portão de Entrada' ---
             service:
               type: NodePort
               nodePort: 31100
-              port: 3100 # Porta interna onde o Loki ouve
+              port: 3100 # Porta interna do binário
 
-          # 2. Configuração da instância única (StatefulSet)
+          # 2. Configura a instância única
           singleBinary:
             replicas: 1
             persistence:
@@ -56,14 +51,11 @@
               size: 5Gi
               storageClass: local-path
 
-          # 3. Zera os componentes escaláveis para evitar conflito de réplicas
-          read:
-            replicas: 0
-          write:
-            replicas: 0
-          backend:
-            replicas: 0
+          # 3. Zera os componentes escaláveis para não dar conflito
+          read: { replicas: 0 }
+          write: { replicas: 0 }
+          backend: { replicas: 0 }
 
-          # 4. Desativa o Gateway (Nginx) para o tráfego ir direto ao pod loki-0
+          # 4. Desativa o Gateway (Nginx) - Tráfego vai direto pro loki-0
           gateway:
             enabled: false
