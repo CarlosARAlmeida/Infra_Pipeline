@@ -20,6 +20,9 @@
           gateway: { enabled: false }
 
           loki:
+            service:
+              type: NodePort
+              nodePort: 31100
             auth_enabled: false
             commonConfig:
               replication_factor: 1
