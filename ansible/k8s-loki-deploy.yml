@@ -58,6 +58,8 @@
           # 4. Gateway para acesso via NodePort (Promtail Nativo)
           gateway:
             enabled: true
+            replicas: 1
+            deploymentStrategy: Recreate
             service:
               type: NodePort
               nodePort: 31100 # É possivel alterar para a porta padrão Loki se alterar no Kubernetes.
