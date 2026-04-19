@@ -13,7 +13,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
   # --- O BLOCO QUE RESOLVE O 'UNUSED DISK' ---
   disk {
     slot     = "scsi0"
-    size     = "20G"        # Tamanho desejado (deve ser >= ao do template)
+    size     = "40G"        # Tamanho desejado (deve ser >= ao do template)
     type     = "disk"
     storage  = "local-lvm"  # Nome exato do seu storage
     iothread = true
@@ -41,7 +41,7 @@ resource "proxmox_vm_qemu" "k8s_master" {
     type  = "host"
   }
 
-  memory = 4096
+  memory = 8192
 
   network {
     id     = 0
@@ -104,7 +104,7 @@ resource "proxmox_vm_qemu" "k8s_workers" {
     type  = "host"
   }
 
-  memory = 2048
+  memory = 4096
 
   network {
     id     = 0
