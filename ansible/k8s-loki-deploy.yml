@@ -10,6 +10,12 @@
         chart_ref: grafana/loki
         release_namespace: observability
         values:
+          chunksCache:
+            enabled: false
+          resultsCache:
+            enabled: false
+          memcached:
+            enabled: false
           # 1. Define o modo único
           deploymentMode: SingleBinary
 
