@@ -1,21 +1,19 @@
-- name: Deploy do Loki
-  hosts: k8s_master
-  become: true
-  tasks:
-    - name: Deploy Loki (Apenas o Servidor)
+- name: Deploy Loki (Apenas o Servidor)
       kubernetes.core.helm:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         name: loki
         chart_ref: grafana/loki
         release_namespace: observability
         values:
-          # 1. Modo Único e Desativação de Caches
           deploymentMode: SingleBinary
+          
+          # --- DESATIVANDO O QUE NÃO PRECISAMOS ---
           chunksCache: { enabled: false }
           resultsCache: { enabled: false }
           memcached: { enabled: false }
           lokiCanary: { enabled: false }
           test: { enabled: false }
+          gateway: { enabled: false }
 
           loki:
             auth_enabled: false
@@ -37,13 +35,12 @@
                     prefix: index_
                     period: 24h
 
-            # --- CORREÇÃO: O serviço agora é o 'Portão de Entrada' ---
+            # --- AQUI É ONDE A MÁGICA ACONTECE ---
             service:
               type: NodePort
               nodePort: 31100
-              port: 3100 # Porta interna do binário
+              port: 3100 
 
-          # 2. Configura a instância única
           singleBinary:
             replicas: 1
             persistence:
@@ -51,11 +48,7 @@
               size: 5Gi
               storageClass: local-path
 
-          # 3. Zera os componentes escaláveis para não dar conflito
+          # Garante que as réplicas dos outros modos fiquem em zero
           read: { replicas: 0 }
           write: { replicas: 0 }
           backend: { replicas: 0 }
-
-          # 4. Desativa o Gateway (Nginx) - Tráfego vai direto pro loki-0
-          gateway:
-            enabled: false
