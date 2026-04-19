@@ -1,4 +1,8 @@
-- name: Deploy Loki (Apenas o Servidor)
+- name: Deploy do Loki
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Deploy Loki (Apenas o Servidor)
       kubernetes.core.helm:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
         name: loki
@@ -6,8 +10,6 @@
         release_namespace: observability
         values:
           deploymentMode: SingleBinary
-          
-          # --- DESATIVANDO O QUE NÃO PRECISAMOS ---
           chunksCache: { enabled: false }
           resultsCache: { enabled: false }
           memcached: { enabled: false }
@@ -35,7 +37,6 @@
                     prefix: index_
                     period: 24h
 
-            # --- AQUI É ONDE A MÁGICA ACONTECE ---
             service:
               type: NodePort
               nodePort: 31100
@@ -48,7 +49,6 @@
               size: 5Gi
               storageClass: local-path
 
-          # Garante que as réplicas dos outros modos fiquem em zero
           read: { replicas: 0 }
           write: { replicas: 0 }
           backend: { replicas: 0 }
