@@ -1,20 +1,25 @@
-- name: Deploy Loki (Apenas o Servidor)
-  kubernetes.core.helm:
-    kubeconfig: /etc/rancher/k3s/k3s.yaml
-    name: loki
-    chart_ref: grafana/loki
-    release_namespace: observability
-    values:
-      # Expõe o Loki no IP do Master para o Promtail Nativo alcançar
-      service:
-        type: NodePort
-        nodePort: 3100 
-      persistence:
-        enabled: true
-        size: 5Gi
-        storageClassName: local-path
-      # Configuração essencial para o Loki não rejeitar logs "antigos"
-      config:
-        table_manager:
-          retention_deletes_enabled: true
-          retention_period: 48h
+---
+- name: Deploy do Loki
+  hosts: k8s_master
+  become: true
+  tasks:
+    - name: Deploy Loki (Apenas o Servidor)
+      kubernetes.core.helm:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        name: loki
+        chart_ref: grafana/loki
+        release_namespace: observability
+        values:
+        # Expõe o Loki no IP do Master para o Promtail Nativo alcançar
+          service:
+            type: NodePort
+            nodePort: 3100 
+          persistence:
+            enabled: true
+            size: 5Gi
+            storageClassName: local-path
+          # Configuração essencial para o Loki não rejeitar logs "antigos"
+          config:
+            table_manager:
+              retention_deletes_enabled: true
+              retention_period: 48h
