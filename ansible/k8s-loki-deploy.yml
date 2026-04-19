@@ -10,22 +10,19 @@
         chart_ref: grafana/loki
         release_namespace: observability
         values:
-          # 1. Define o modo simples (um único pod)
+          # 1. Define o modo único
           deploymentMode: SingleBinary
 
           loki:
             auth_enabled: false
             commonConfig:
               replication_factor: 1
-            
-            # 2. Resolve o erro do 'bucketNames' e define armazenamento local
             storage:
               type: filesystem
               bucketNames:
                 chunks: chunks
                 tags: tags
                 admin: admin
-
             schemaConfig:
               configs:
                 - from: "2024-01-01"
@@ -36,7 +33,7 @@
                     prefix: index_
                     period: 24h
 
-          # 3. Configuração do Pod Único e Persistência
+          # 2. Configura o binário único
           singleBinary:
             replicas: 1
             persistence:
@@ -44,13 +41,22 @@
               size: 5Gi
               storageClass: local-path
 
-          # 4. Expõe a porta 3100 para o seu Promtail Nativo
-          lokiCanary:
-            enabled: false
-          test:
-            enabled: false
+          # 3. O FIX: Zerar explicitamente os componentes do modo Scalable
+          read:
+            replicas: 0
+          write:
+            replicas: 0
+          backend:
+            replicas: 0
+
+          # 4. Gateway para acesso via NodePort (Promtail Nativo)
           gateway:
             enabled: true
             service:
               type: NodePort
               nodePort: 3100
+          
+          lokiCanary:
+            enabled: false
+          test:
+            enabled: false
