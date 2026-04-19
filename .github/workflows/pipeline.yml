@@ -142,7 +142,22 @@ jobs:
           ansible-playbook -i ansible/inventory.ini \
                            ansible/k8s-pos-install.yml \
                            --private-key private_key.pem        
-                              
+       
+      - name: Executar Deploy do Loki
+        if: github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_ANSIBLE }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          # Rodando o deploy do Loki
+          ansible-playbook -i ansible/inventory.ini \
+                           ansible/k8s-loki-deploy.yml \
+                           --private-key private_key.pem                           
+
       - name: Instalar Jaeger Tracing 
         if: github.ref == 'refs/heads/main'
         working-directory: .
