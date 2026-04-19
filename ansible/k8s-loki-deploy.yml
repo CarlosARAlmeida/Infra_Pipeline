@@ -54,7 +54,7 @@
             enabled: true
             service:
               type: NodePort
-              nodePort: 3100
+              nodePort: 31100
           
           lokiCanary:
             enabled: false
