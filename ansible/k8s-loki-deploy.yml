@@ -10,6 +10,8 @@
         release_namespace: observability
         values:
           deploymentMode: SingleBinary
+          
+          # Desativação de componentes desnecessários para o lab
           chunksCache: { enabled: false }
           resultsCache: { enabled: false }
           memcached: { enabled: false }
@@ -37,18 +39,19 @@
                     prefix: index_
                     period: 24h
 
-            service:
-              type: NodePort
-              nodePort: 31100
-              port: 3100 
-
+          # --- AQUI ESTÁ O DETALHE QUE FALTAVA ---
           singleBinary:
             replicas: 1
             persistence:
               enabled: true
               size: 5Gi
               storageClass: local-path
+            # No modo SingleBinary, o service deve ser habilitado aqui:
+            service:
+              type: NodePort
+              nodePort: 31100
 
+          # Garante que as réplicas dos outros modos fiquem em zero
           read: { replicas: 0 }
           write: { replicas: 0 }
           backend: { replicas: 0 }
