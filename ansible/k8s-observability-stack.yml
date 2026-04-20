@@ -32,17 +32,17 @@
         name: prometheus-stack
         chart_ref: prometheus-community/kube-prometheus-stack
         release_namespace: observability
-        create_namespace: true
         values:
           grafana:
+            # --- CORREÇÃO: Estratégia no nível raiz do chart ---
+            deploymentStrategy:
+              type: Recreate
+            
+            # Garante permissão total no volume local-path
             securityContext:
               runAsUser: 0
               runAsGroup: 0
               fsGroup: 0
-            
-            # CORREÇÃO: O lugar correto da estratégia no chart do Grafana
-            deploymentStrategy:
-              type: Recreate
             
             service:
               type: NodePort
@@ -52,23 +52,20 @@
               enabled: true
               type: pvc
               storageClassName: local-path
-              accessModes:
-                - ReadWriteOnce
               size: 5Gi  
 
-            # --- CONFIGURAÇÃO AUTOMÁTICA DE DATA SOURCES COM CORRELAÇÃO ---
             additionalDataSources:
               - name: Loki
                 type: loki
                 uid: loki-datasource-id
-                url: http://loki.observability:3100
+                # Usando o IP/Porta que você validou com o netstat
+                url: http://172.22.0.29:32219 
                 jsonData:
                   derivedFields:
                     - datasourceUid: jaeger-datasource-id
                       name: TraceID
-                      # Regex melhorado para capturar traceid=, traceId:, etc.
                       matcherRegex: "(?:traceid|traceID|trace_id)[=:]\\s*\"?(\\w+)\"?"
-                      url: "$${__value.raw}" # O link interno que abre o Jaeger
+                      url: "$${__value.raw}"
               
               - name: Jaeger
                 type: jaeger
