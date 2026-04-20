@@ -26,6 +26,24 @@
     - name: Atualizar repositórios Helm
       shell: helm repo update
 
+    - name: Criar Novo PVC Manual para o Grafana (V2)
+      kubernetes.core.k8s:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: grafana-pvc-v2
+            namespace: observability
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: local-path
+            resources:
+              requests:
+                storage: 5Gi
+
     - name: Deploy kube-prometheus-stack (Namespace observability)
       kubernetes.core.helm:
         kubeconfig: /etc/rancher/k3s/k3s.yaml
@@ -34,6 +52,12 @@
         release_namespace: observability
         values:
           grafana:
+            persistence:
+              enabled: true
+              existingClaim: grafana-pvc-v2
+              type: pvc
+              storageClassName: local-path
+              size: 5Gi
             # --- CORREÇÃO: Estratégia no nível raiz do chart ---
             deploymentStrategy:
               type: Recreate
@@ -48,12 +72,6 @@
               type: NodePort
               nodePort: 32000
             
-            persistence:
-              enabled: true
-              type: pvc
-              storageClassName: local-path
-              size: 5Gi  
-
             additionalDataSources:
               - name: Loki
                 type: loki
