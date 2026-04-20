@@ -1,9 +1,8 @@
----
 - name: Setup Observability Stack (Helm + Prometheus + Grafana)
   hosts: k8s_master
   become: true
   tasks:
-    - name: Baixar script de instalação do Helm (via curl para evitar bug de SSL do Python)
+    - name: Baixar script de instalação do Helm
       shell: |
         curl -fsSL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
         chmod 700 /tmp/get_helm.sh
@@ -15,7 +14,7 @@
       args:
         creates: /usr/local/bin/helm
 
-    - name: Adicionar repositórios Helm (Prometheus e Grafana)
+    - name: Adicionar repositórios Helm
       kubernetes.core.helm_repository:
         name: "{{ item.name }}"
         repo_url: "{{ item.url }}"
@@ -50,33 +49,35 @@
         name: prometheus-stack
         chart_ref: prometheus-community/kube-prometheus-stack
         release_namespace: observability
+        create_namespace: true
         values:
           grafana:
-            persistence:
-              enabled: true
-              existingClaim: grafana-pvc-v2
-              type: pvc
-              storageClassName: local-path
-              size: 5Gi
-            # --- CORREÇÃO: Estratégia no nível raiz do chart ---
+            # Força a senha admin para evitar erro de CreateContainerConfig (Secret missing)
+            adminPassword: "admin"
+            
+            # Estratégia de Deploy (Recreate é vital para soltar o volume no Proxmox)
             deploymentStrategy:
               type: Recreate
             
-            # Garante permissão total no volume local-path
+            # Permissões de Root para o Init Container do Grafana
             securityContext:
               runAsUser: 0
               runAsGroup: 0
               fsGroup: 0
             
+            persistence:
+              enabled: true
+              existingClaim: grafana-pvc-v2
+
             service:
               type: NodePort
               nodePort: 32000
             
+            # --- CORRELAÇÃO DE LOGS E TRACES ---
             additionalDataSources:
               - name: Loki
                 type: loki
                 uid: loki-datasource-id
-                # Usando o IP/Porta que você validou com o netstat
                 url: http://172.22.0.29:32219 
                 jsonData:
                   derivedFields:
