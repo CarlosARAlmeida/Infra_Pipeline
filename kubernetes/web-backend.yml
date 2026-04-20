@@ -43,19 +43,13 @@ spec:
             value: "shop-backend"
 
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
-            value: "http://jaeger-svc.observability:4318/v1/traces" # Apontando para o namespace certo!
+            value: "http://jaeger-svc.observability:4318" # Apontando para o namespace certo!
 
           - name: OTEL_RESOURCE_ATTRIBUTES
             value: "deployment.environment=lab,service.namespace=shop-lab"
 
           - name: OTEL_EXPORTER_OTLP_PROTOCOL
             value: "http/protobuf"
-
-          # FORÇA A INJEÇÃO DE TRACE ID NOS LOGS (Winston/Pino)
-          - name: OTEL_LOG_LEVEL
-            value: "debug"
-          - name: OTEL_NODE_RESOURCE_DETECTORS
-            value: "all"
 
           - name: NODE_OPTIONS
             value: "--require @opentelemetry/auto-instrumentations-node/register"  
