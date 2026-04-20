@@ -43,7 +43,7 @@ spec:
             value: "shop-backend"
 
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
-            value: "http://jaeger-svc.observability:4318" # Apontando para o namespace certo!
+            value: "http://jaeger-svc.observability:4318/v1/traces" # Apontando para o namespace certo!
 
           - name: OTEL_RESOURCE_ATTRIBUTES
             value: "deployment.environment=lab,service.namespace=shop-lab"
@@ -52,7 +52,12 @@ spec:
             value: "http/protobuf"
 
           - name: NODE_OPTIONS
-            value: "--require @opentelemetry/auto-instrumentations-node/register"  
+            value: "--require @opentelemetry/auto-instrumentations-node/register"
+
+          - name: OTEL_LOG_LEVEL
+            value: "warn" 
+          - name: NODE_OPTIONS
+            value: "--require @opentelemetry/auto-instrumentations-node/register"
 
           image: ghcr.io/carlosaralmeida/shop-api:v2
           name: shop-api

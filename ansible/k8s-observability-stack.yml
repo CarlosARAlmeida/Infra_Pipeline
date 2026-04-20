@@ -91,7 +91,7 @@
                   derivedFields:
                     - datasourceUid: jaeger-datasource-id
                       name: TraceID
-                      matcherRegex: '(?i)(?:traceID|traceid|trace_id)?[:=]?\s*\b([a-fA-F0-9]{32})\b'
+                      matcherRegex: '(?i)traceid[=:]\s*["'']?([a-f0-9]{32})["'']?'
                       url: "$${__value.raw}"
               
               - name: Jaeger
