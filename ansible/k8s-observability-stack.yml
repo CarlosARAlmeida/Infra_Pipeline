@@ -39,34 +39,41 @@
               runAsUser: 0
               runAsGroup: 0
               fsGroup: 0
-            spec:
-              strategy:
-                type: Recreate # Em vez de RollingUpdate
+            
+            # CORREÇÃO: O lugar correto da estratégia no chart do Grafana
+            deploymentStrategy:
+              type: Recreate
+            
             service:
               type: NodePort
               nodePort: 32000
+            
             persistence:
               enabled: true
               type: pvc
-              storageClassName: local-path # Storage padrão do K3s
+              storageClassName: local-path
               accessModes:
                 - ReadWriteOnce
               size: 5Gi  
-            # --- CONFIGURAÇÃO AUTOMÁTICA DE DATA SOURCES ---
+
+            # --- CONFIGURAÇÃO AUTOMÁTICA DE DATA SOURCES COM CORRELAÇÃO ---
             additionalDataSources:
               - name: Loki
                 type: loki
+                uid: loki-datasource-id
                 url: http://loki.observability:3100
                 jsonData:
                   derivedFields:
                     - datasourceUid: jaeger-datasource-id
-                      matcherRegex: "traceID=(\\w+)"
                       name: TraceID
-                      url: "$${__value.raw}" # O duplo $$ é para o Ansible não confundir com variável
+                      # Regex melhorado para capturar traceid=, traceId:, etc.
+                      matcherRegex: "(?:traceid|traceID|trace_id)[=:]\\s*\"?(\\w+)\"?"
+                      url: "$${__value.raw}" # O link interno que abre o Jaeger
+              
               - name: Jaeger
                 type: jaeger
                 uid: jaeger-datasource-id
                 url: http://jaeger-svc.observability:16686
                 jsonData:
                   nodeGraph:
-                    enabled: true  
+                    enabled: true
