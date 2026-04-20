@@ -36,18 +36,30 @@ spec:
           - name: DB_HOST
             value: "db" # Nome do seu Service de banco no namespace shop-lab
           - name: DATABASE_URL
-            value: "postgres://user:password@db:5432/shop_db"        
+            value: "postgres://user:password@db:5432/shop_db"  
+
             # --- Configurações do OpenTelemetry ---
           - name: OTEL_SERVICE_NAME
             value: "shop-backend"
+
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
-            value: "http://jaeger-svc.observability:4318" # Apontando para o namespace certo!
+            value: "http://jaeger-svc.observability:4318/v1/traces" # Apontando para o namespace certo!
+
           - name: OTEL_RESOURCE_ATTRIBUTES
             value: "deployment.environment=lab,service.namespace=shop-lab"
+
           - name: OTEL_EXPORTER_OTLP_PROTOCOL
             value: "http/protobuf"
+
+          # FORÇA A INJEÇÃO DE TRACE ID NOS LOGS (Winston/Pino)
+          - name: OTEL_LOG_LEVEL
+            value: "debug"
+          - name: OTEL_NODE_RESOURCE_DETECTORS
+            value: "all"
+
           - name: NODE_OPTIONS
-          value: "--require @opentelemetry/auto-instrumentations-node/register"  
+            value: "--require @opentelemetry/auto-instrumentations-node/register"  
+
           image: ghcr.io/carlosaralmeida/shop-api:v2
           name: shop-api
           ports:
