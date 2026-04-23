@@ -49,6 +49,6 @@
 
     - name: Instalar pacotes de suporte (NFS, Curl, etc)
       apt:
-        name: [ 'curl', 'nfs-common', 'open-iscsi', 'net-tools' ]
+        name: [ 'curl', 'nfs-common', 'open-iscsi', 'net-tools']
         state: present
         update_cache: yes
